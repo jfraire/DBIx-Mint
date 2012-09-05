@@ -3,7 +3,7 @@ package DBIx::Mint::Schema;
 use DBIx::Mint::ResultSet;
 use DBIx::Mint::Schema::Class;
 use DBIx::Mint::Schema::Relationship;
-
+use v5.10;
 use Moo;
 with 'MooX::Singleton';
 
@@ -48,7 +48,13 @@ sub add_relationship {
             my $self = shift;
             my %conditions;
             $conditions{"me.$_"} = $self->$_ foreach @pk;
-            return $rs->search(\%conditions);
+            $rs = $rs->search(\%conditions);
+            given ( $rel->result_as ) {
+                when ('single')       { return $rs->single;      }
+                when ('all')          { return $rs->all;         }
+                when ('as_iterator')  { return $rs->as_iterator; }
+                default               { return $rs;              }
+            }
         };
     }
     
@@ -64,9 +70,29 @@ sub add_relationship {
             my $self = shift;
             my %conditions;
             $conditions{"me.$_"} = $self->$_ foreach @pk;
-            return $inverse_rs ->search(\%conditions);
+            
+            $inverse_rs = $inverse_rs->search(\%conditions);
+            given ( $rel->inverse_result_as ) {
+                when ('all')          { return $inverse_rs->all;         }
+                when ('as_iterator')  { return $inverse_rs->as_iterator; }
+                default               { return $inverse_rs;              }
+            }
         };
     }
+    
+    # if ( $rel->has_insert_into ) {
+        # my $method = 'insert_into_' . $rel->insert_into || $rel->method;
+        
+# #         # Our ResultSet must have the ability to insert
+
+# #         no strict 'refs';
+        # *{"$class::$method"} =sub {
+            # my $self = shift;
+            
+# #             # We should receive a list of hash refs/objects for this to work
+            
+# #         };
+    # }
 }
 
 1;

@@ -4,15 +4,18 @@ use DBIx::Mint::Schema;
 use Carp;
 use Moo;
 
-has from_class     => ( is => 'ro', required  => 1 );
-has to_class       => ( is => 'ro', required  => 1 );
-has conditions     => ( is => 'rw', required  => 1 );
-has method         => ( is => 'rw', required  => 1 );
-has inverse_method => ( is => 'rw', predicate => 1 );
-has type           => ( is => 'rw', predicate => 1 );
-has insert_into    => ( is => 'rw', predicate => 1 );
+has from_class           => ( is => 'ro', required  => 1 );
+has to_class             => ( is => 'ro', required  => 1 );
+has conditions           => ( is => 'rw', required  => 1 );
 
-# Condition might be given in terms of a simple to_attribute.
+has method               => ( is => 'rw', required  => 1 );
+has result_as            => ( is => 'rw', default => sub {'result_set'});
+has insert_into          => ( is => 'rw', predicate => 1 );
+
+has inverse_method       => ( is => 'rw', predicate => 1 );
+has inverse_result_as    => ( is => 'rw', default => sub {'result_set'});
+
+# Condition might be given in terms of a simple to_field.
 # Ideally, it is an array ref of hash refs { from_attribute => to_attribute }.
 sub BUILDARGS {
     my ($class, %args) = @_;

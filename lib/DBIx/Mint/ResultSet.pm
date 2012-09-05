@@ -179,7 +179,7 @@ sub single {
     $sth->execute(@bind);
     my $single = $sth->fetchrow_hashref;
     $sth->finish;
-    return $newrs->inflate($single);
+    return $self->inflate($single);
 }
 
 # Returns a number
