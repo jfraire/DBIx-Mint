@@ -12,7 +12,7 @@ has columns       => ( is => 'rw', default   => sub {[]});
 has where         => ( is => 'rw', default   => sub {[]});
 has joins         => ( is => 'rw', default   => sub {[]});
 
-has rows_per_page => ( is => 'rw', default   => sub {10});
+has rows_per_page => ( is => 'rw', default   => sub {10} );
 has limit         => ( is => 'rw', predicate => 1 );
 has offset        => ( is => 'rw', predicate => 1 );
 
@@ -23,7 +23,7 @@ has list_order_by => ( is => 'rw', default   => sub {[]});
 has iterator      => ( is => 'rw', predicate => 1, handles => ['next'] );
 
 around 'select', 'search', 'group_by', 'having', 'order_by', 'target_class', 
-       'rows_per_page', 'limit',  'offset' => sub {
+    'set_limit', 'set_offset', 'set_rows_per_page' => sub {
     my $orig = shift;
     my $self = shift;
     my $clone = $self->_clone;
@@ -67,8 +67,23 @@ sub order_by {
 sub page {
     my ($self, $page) = @_;
     $page = defined $page ? $page : 1;
-    return $self->limit ($self->rows_per_page)
-         ->offset($self->rows_per_page * ( $page - 1 ));
+    return $self->set_limit ( $self->rows_per_page )
+         ->set_offset($self->rows_per_page * ( $page - 1 ));
+}
+
+sub set_limit {
+    my ($self, $value) = @_;
+    $self->limit($value);
+}
+
+sub set_offset {
+    my ($self, $value) = @_;
+    $self->offset($value);
+}
+
+sub set_rows_per_page {
+    my ($self, $value) = @_;
+    $self->rows_per_page($value);
 }
 
 # Joins
@@ -128,7 +143,7 @@ sub select_sql {
     return DBIx::Mint->instance->abstract->select(
         -columns    => \@cols,
         -from       => [ -join => @joins ],
-        -where      => { -and  => $self->where },
+        -where      => [ -and  => $self->where ],
         $self->has_limit           ? (-limit       => $self->limit)           : (),
         $self->has_offset          ? (-offset      => $self->offset)          : (),
         @{$self->list_group_by}    ? (-group_by    => $self->list_group_by)   : (),
@@ -174,6 +189,8 @@ sub find {
     my ($where) = @_;
     if (!ref $where) {
         my @pk = @{ DBIx::Mint::Schema->instance->for_table($self->table)->pk };
+        croak "DBIx::Mint::ResultSet requires a table and its primary key fields to find a row"
+            unless @pk;
         $where =  [ map { { shift(@pk) => $_ } } @_ ];
     }
     return $self->search($where)->single;
@@ -205,10 +222,9 @@ sub as_iterator {
 # Simply blesses the fetched row into the target class
 sub inflate {
     my ($self, $row) = @_;
-    croak "Please define the target class for the retrieved records"
-        unless $self->has_target_class;
     return undef unless defined $row;
-    return bless $row, $self->target_class;
+    return $row  unless $self->has_target_class;
+    return bless  $row, $self->target_class;
 }
 
 1;

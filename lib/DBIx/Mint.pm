@@ -1,6 +1,7 @@
 package DBIx::Mint;
 
 use SQL::Abstract::More;
+use Carp;
 use Moo;
 with 'MooX::Singleton';
 
@@ -20,11 +21,11 @@ sub do_transaction {
     $self->dbh->begin_work if $self->dbh->{AutoCommit};
     eval {
         &$trans;
-        $dbh->commit;
+        $self->dbh->commit;
     };
     if ($@) {
         carp "Transaction failed: $@\n";
-        $dbh->rollback;
+        $self->dbh->rollback;
         return undef;
     }
     return 1;
