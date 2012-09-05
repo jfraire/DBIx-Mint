@@ -1,0 +1,6 @@
+Revision history for Perl extension DBIx::Mint.
+
+0.01  Wed Sep  5 11:42:36 2012
+	- original version; created by h2xs 1.23 with options
+		-X DBIx::Mint
+

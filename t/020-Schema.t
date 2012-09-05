@@ -1,0 +1,126 @@
+#!/usr/bin/perl
+
+use Test::More;
+use strict;
+use warnings;
+
+BEGIN {
+    use_ok 'DBIx::Mint::Schema';
+}
+
+{
+    package Bloodbowl::Coach; use Moo;
+    has 'id' => ( is => 'rw' );
+}
+{
+    package Bloodbowl::Team; use Moo;
+    has 'id' => ( is => 'rw' );
+}
+{
+    package Bloodbowl::Blah; use Moo;
+    has 'field1' => ( is => 'ro', default => sub { 'textkey' } );
+    has 'field2' => ( is => 'ro', default => sub { 33 } );
+}
+
+my $schema = DBIx::Mint::Schema->instance;
+isa_ok($schema, 'DBIx::Mint::Schema');
+
+$schema->add_class(
+    class      => 'Bloodbowl::Coach',
+    table      => 'coaches',
+    pk         => 'id',
+    auto_pk => 1,
+);
+is($schema->for_class('Bloodbowl::Coach')->table(), 'coaches',
+    'Accessor for the schema of a class works fine (table)');
+
+is_deeply($schema->for_class('Bloodbowl::Coach')->pk(), ['id'],
+    'Accessor for the schema of a class works fine (primary key)');
+
+ok($schema->for_class('Bloodbowl::Coach')->auto_pk(),
+    'Accessor for the schema of a class works fine (auto_pk)');
+
+$schema->add_class(
+    class      => 'Bloodbowl::Team',
+    table      => 'teams',
+    pk         => 'id',
+    is_auto_pk => 1,
+);
+
+$schema->add_class(
+    class      => 'Bloodbowl::Blah',
+    table      => 'blah',
+    pk         => [qw(field1 field2)],
+);
+
+{
+    my $schema2 = DBIx::Mint::Schema->instance;
+    is($schema, $schema2, 'DBIx::Mint::Schema is really a singleton');
+}
+
+is_deeply($schema->for_class('Bloodbowl::Blah')->pk(), ['field1', 'field2'],
+    'Accessor for the schema of a class works fine (multiple col primary key)');
+
+ok(!$schema->for_class('Bloodbowl::Blah')->auto_pk(),
+    'Accessor for the schema of a class works fine (no auto_pk)');
+
+### Tests for adding relationships
+
+$schema->add_relationship(
+    from_class     => 'Bloodbowl::Coach',
+    to_class       => 'Bloodbowl::Team',
+    to_field       => 'coach',
+    method         => 'get_team',
+    inverse_method => 'get_coach',
+);
+
+can_ok('Bloodbowl::Coach', 'get_team');
+can_ok('Bloodbowl::Team',  'get_coach');
+
+my $coach = Bloodbowl::Coach->new;
+$coach->id(3);
+
+my $rs = $coach->get_team;
+isa_ok($rs, 'DBIx::Mint::ResultSet');
+
+{
+    my ($sql,@bind) = $rs->select_sql;
+    is($sql, q{SELECT teams.* FROM coaches AS me INNER JOIN teams AS teams ON ( me.id = teams.coach ) WHERE ( me.id = ? )},
+        'The returned ResultSet produces correct SQL');
+    is($bind[0], 3, 'Bound values for relationship is correct');
+}
+
+my $team = Bloodbowl::Team->new( id => 4, coach => 3 );
+my $team_rs = $team->get_coach;
+isa_ok($team_rs, 'DBIx::Mint::ResultSet');
+
+{
+    my ($sql,@bind) = $team_rs->select_sql;
+    is($sql, q{SELECT coaches.* FROM teams AS me INNER JOIN coaches AS coaches ON ( me.coach = coaches.id ) WHERE ( me.id = ? )},
+        'The reverse ResultSet produces correct SQL');
+    is( $bind[0], 4, 'Bound values are correct for reverse method');
+}
+
+{
+    $schema->add_relationship(
+        from_class     => 'Bloodbowl::Coach',
+        to_class       => 'Bloodbowl::Blah',
+        conditions     => [ { coach_f1 => 'blah_field1'}, { coach_f2 => 'blah_field2'} ],
+        method         => 'get_blah',
+        inverse_method => 'get_coach',
+    );
+    my $rs = $coach->get_blah;
+    isa_ok( $rs, 'DBIx::Mint::ResultSet');
+    my ($sql, @bind) = $rs->select_sql;
+    is($sql, q{SELECT blah.* FROM coaches AS me INNER JOIN blah AS blah ON ( ( me.coach_f1 = blah.blah_field1 AND me.coach_f2 = blah.blah_field2 ) ) WHERE ( me.id = ? )},
+        'ResultSet for a multi-column primary key produces correct SQL');
+    
+    my $blah = Bloodbowl::Blah->new;
+    $rs = $blah->get_coach;
+    isa_ok( $rs, 'DBIx::Mint::ResultSet');
+    ($sql, @bind) = $rs->select_sql;
+    is($sql, q{SELECT coaches.* FROM blah AS me INNER JOIN coaches AS coaches ON ( ( me.blah_field1 = coaches.coach_f1 AND me.blah_field2 = coaches.coach_f2 ) ) WHERE ( ( me.field1 = ? AND me.field2 = ? ) )},
+        'Inverse ResultSet for a multi-column primary key produces correct SQL');    
+}
+
+done_testing();
