@@ -155,7 +155,7 @@ sub select_sql {
 sub select_sth {
     my $self = shift;
     my $mint = DBIx::Mint->instance;
-    croak "Database connection has not been established" unless $mint->has_dbh;
+    croak "The database handle has not been established" unless $mint->has_dbh;
     my ($sql, @bind) = $self->select_sql;
     return DBIx::Mint->instance->dbh->prepare($sql), @bind;
 }
@@ -175,25 +175,11 @@ sub all {
 # Returns a single, inflated object
 sub single {
     my $self = shift;
-    my $newrs = $self->limit(1);
-    my ($sth, @bind) = $newrs->select_sth;
+    my ($sth, @bind) = $self->set_limit(1)->select_sth;
     $sth->execute(@bind);
     my $single = $sth->fetchrow_hashref;
     $sth->finish;
     return $newrs->inflate($single);
-}
-
-# Returns a single, inflated object
-sub find {
-    my $self    = shift;
-    my ($where) = @_;
-    if (!ref $where) {
-        my @pk = @{ DBIx::Mint::Schema->instance->for_table($self->table)->pk };
-        croak "DBIx::Mint::ResultSet requires a table and its primary key fields to find a row"
-            unless @pk;
-        $where =  [ map { { shift(@pk) => $_ } } @_ ];
-    }
-    return $self->search($where)->single;
 }
 
 # Returns a number
