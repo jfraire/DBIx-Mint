@@ -1,6 +1,7 @@
 package DBIx::Mint::ResultSet;
 
 use DBIx::Mint;
+use DBIx::Mint::ResultSet::Iterator;
 use List::MoreUtils qw(uniq);
 use Clone qw(clone);
 use Carp;
@@ -22,8 +23,8 @@ has list_order_by => ( is => 'rw', default   => sub {[]});
 
 has iterator      => ( is => 'rw', predicate => 1, handles => ['next'] );
 
-around 'select', 'search', 'group_by', 'having', 'order_by', 'target_class', 
-    'set_limit', 'set_offset', 'set_rows_per_page' => sub {
+around 'select', 'search', 'group_by', 'having', 'order_by', 'set_target_class', 
+    'set_limit', 'set_offset', 'set_rows_per_page', 'as_iterator' => sub {
     my $orig = shift;
     my $self = shift;
     my $clone = $self->_clone;
@@ -189,7 +190,7 @@ sub count {
     $clone->columns([]);
     my ($sth, @bind) = $clone->select('COUNT(*)')->select_sth;
     $sth->execute(@bind);
-    return $sth->selectall_arrayref->[0][0];
+    return $sth->fetchall_arrayref->[0][0];
 }
 
 # Creates an iterator and saves it into the ResultSet object
@@ -205,12 +206,17 @@ sub as_iterator {
     $self->iterator( $iterator );
 }
 
+sub set_target_class {
+    my ($self, $target) = @_;
+    $self->target_class($target);
+}
+
 # Simply blesses the fetched row into the target class
 sub inflate {
     my ($self, $row) = @_;
     return undef unless defined $row;
     return $row  unless $self->has_target_class;
-    return bless  $row, $self->target_class;
+    return bless $row, $self->target_class;
 }
 
 1;

@@ -6,7 +6,7 @@ has closure => ( is => 'ro', required => 1 );
 
 sub next {
     my $self = shift;
-    return $closure->();
+    return $self->closure->();
 }
 
 1;
