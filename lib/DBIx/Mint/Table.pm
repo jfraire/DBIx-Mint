@@ -69,14 +69,57 @@ sub insert {
     return wantarray ? @ids : $ids[0];
 }
 
-
 sub update {
+    my $proto = shift;
+    my $class = ref $proto ? ref $proto : $proto;
+    my $schema = DBIx::Mint::Schema->instance->for_class($class)
+        || croak "A schema definition for class $class is needed to use DBIx::Mint::ResourceSet::Table";
+
+    # Build the SQL
+    my ($sql, @bind);
+    if (ref $proto) {
+        # Updating a single object
+        my @pk    = @{ $schema->pk };
+        my %where = map { $_ => $proto->$_ } @pk;
+        my %copy  = %$proto;
+        delete $copy{$_} foreach @{ $schema->fields_not_in_db }, @pk;
+        ($sql, @bind) = DBIx::Mint->instance->abstract->update($schema->table, \%copy, \%where);
+    }
+    else {
+        # Updating at class level
+        ($sql, @bind) = DBIx::Mint->instance->abstract->update($schema->table, $_[0], $_[1]);
+    }
     
+    # Execute the SQL
+    return DBIx::Mint->instance->dbh->do($sql, undef, @bind);
 }
 
-sub delete {}
-sub delete_sth {}
-sub delete_sql {}
+sub delete {
+    my $proto = $_[0];
+    my $class = ref $proto ? ref $proto : $proto;
+    my $schema = DBIx::Mint::Schema->instance->for_class($class)
+        || croak "A schema definition for class $class is needed to use DBIx::Mint::ResourceSet::Table";
+
+    # Build the SQL
+    my ($sql, @bind);
+    if (ref $proto) {
+        # Deleting a single object
+        my @pk    = @{ $schema->pk };
+        my %where = map { $_ => $proto->$_ } @pk;
+        ($sql, @bind) = DBIx::Mint->instance->abstract->delete($schema->table, \%where);
+    }
+    else {
+        # Deleting at class level
+        ($sql, @bind) = DBIx::Mint->instance->abstract->delete($schema->table, $_[1]);
+    }
+    
+    # Execute the SQL
+    my $res = DBIx::Mint->instance->dbh->do($sql, undef, @bind);
+    if (ref $proto && $res) {
+        delete $proto->{$_} foreach (keys %$proto);
+    }
+    return $res;
+}
 
 # Returns a single, inflated object using its primary keys
 sub find {

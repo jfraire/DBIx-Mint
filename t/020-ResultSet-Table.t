@@ -111,8 +111,17 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
 }
 
 # Tests for delete
-
-
+{
+    Bloodbowl::Coach->delete({password => 678});
+    my $user = Bloodbowl::Coach->find(2);
+    ok !defined $user,   'Delete at class level works';
+    $user    = Bloodbowl::Coach->find(4);
+    is $user->id, 4,     'And not all the records where deleted';
+    $user->delete;
+    is_deeply $user, {}, 'Delete at the object level undefs the deleted object';
+    my $test = Bloodbowl::Coach->find(4);
+    ok !defined $test,   'Deleted object could not be found';
+}
 
 $dbh->disconnect;
 done_testing();
