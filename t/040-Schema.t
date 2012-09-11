@@ -64,7 +64,7 @@ $schema->add_class(
 
 ### Tests for adding relationships
 
-# This is a one-to-one relationship...
+# This is a one-to-many relationship...
 $schema->add_relationship(
     from_class     => 'Bloodbowl::Team',
     to_class       => 'Bloodbowl::Player',
