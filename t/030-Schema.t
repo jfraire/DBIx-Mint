@@ -67,11 +67,13 @@ ok(!$schema->for_class('Bloodbowl::Blah')->auto_pk(),
 ### Tests for adding relationships
 
 $schema->add_relationship(
-    from_class     => 'Bloodbowl::Coach',
-    to_class       => 'Bloodbowl::Team',
-    to_field       => 'coach',
-    method         => 'get_team',
-    inverse_method => 'get_coach',
+    from_class        => 'Bloodbowl::Coach',
+    to_class          => 'Bloodbowl::Team',
+    to_field          => 'coach',
+    method            => 'get_team',
+    result_as         => 'resultset',
+    inverse_method    => 'get_coach',
+    inverse_result_as => 'resultset',
 );
 
 can_ok('Bloodbowl::Coach', 'get_team');
@@ -103,11 +105,13 @@ isa_ok($team_rs, 'DBIx::Mint::ResultSet');
 
 {
     $schema->add_relationship(
-        from_class     => 'Bloodbowl::Coach',
-        to_class       => 'Bloodbowl::Blah',
-        conditions     => [ { coach_f1 => 'blah_field1'}, { coach_f2 => 'blah_field2'} ],
-        method         => 'get_blah',
-        inverse_method => 'get_coach',
+        from_class        => 'Bloodbowl::Coach',
+        to_class          => 'Bloodbowl::Blah',
+        conditions        => [ { coach_f1 => 'blah_field1'}, { coach_f2 => 'blah_field2'} ],
+        method            => 'get_blah',
+        result_as         => 'resultset',
+        inverse_method    => 'get_coach',
+        inverse_result_as => 'resultset',
     );
     my $rs = $coach->get_blah;
     isa_ok( $rs, 'DBIx::Mint::ResultSet');

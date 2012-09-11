@@ -9,11 +9,11 @@ has to_class             => ( is => 'ro', required  => 1 );
 has conditions           => ( is => 'rw', required  => 1 );
 
 has method               => ( is => 'rw', required  => 1 );
-has result_as            => ( is => 'rw', default => sub {'result_set'});
+has result_as            => ( is => 'rw', default => sub {'all'});
 has insert_into          => ( is => 'rw', predicate => 1 );
 
 has inverse_method       => ( is => 'rw', predicate => 1 );
-has inverse_result_as    => ( is => 'rw', default => sub {'result_set'});
+has inverse_result_as    => ( is => 'rw', default => sub {'single'});
 
 # Condition might be given in terms of a simple to_field.
 # Ideally, it is an array ref of hash refs { from_attribute => to_attribute }.

@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-use DBI;
+use lib 't';
+use Test::DB;
 use Test::More;
 use strict;
 use warnings;
@@ -13,8 +14,7 @@ BEGIN {
 
 # Tests for ResultSet data fetching methods
 
-my $dbh  = DBI->connect('dbi:SQLite:dbname=t/bloodbowl.db', '', '',
-    { AutoCommit => 1, RaiseError => 1 });
+my $dbh  = Test::DB->init_db;
 my $mint = DBIx::Mint->instance( dbh => $dbh );
 isa_ok( $mint, 'DBIx::Mint');
 

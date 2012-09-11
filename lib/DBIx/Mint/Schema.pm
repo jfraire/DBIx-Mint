@@ -37,11 +37,13 @@ sub add_relationship {
     my $to   = $schema->for_class( $rel->to_class  );
     
     {
+        # Build method for the "from" class (returns many records)
         my $class = $from->class;
         my @pk = @{ $from->pk };
         my $rs = DBIx::Mint::ResultSet->new( table => $from->table )
-            ->select    ( $to->table . '.*' )
-            ->inner_join( $to->table, $rel->conditions );
+            ->select          ( $to->table . '.*'            )
+            ->inner_join      ( $to->table, $rel->conditions )
+            ->set_target_class( $rel->to_class               );
             
         no strict 'refs';
         *{$class . '::' . $rel->method} = sub { 
@@ -51,9 +53,9 @@ sub add_relationship {
             $rs = $rs->search(\%conditions);
             given ( $rel->result_as ) {
                 when ('single')       { return $rs->single;      }
-                when ('all')          { return $rs->all;         }
+                when ('resultset')    { return $rs;              }
                 when ('as_iterator')  { return $rs->as_iterator; }
-                default               { return $rs;              }
+                default               { return $rs->all;         }
             }
         };
     }
@@ -62,11 +64,13 @@ sub add_relationship {
         my $class = $to->class;
         my @pk = @{ $to->pk };
         my $inverse_rs = DBIx::Mint::ResultSet->new( table => $to->table )
-            ->select    ( $from->table . '.*' )
-            ->inner_join( $from->table, $rel->inverse_conditions );
+            ->select          ( $from->table . '.*'                    )
+            ->inner_join      ( $from->table, $rel->inverse_conditions )
+            ->set_target_class( $rel->from_class                       );
             
         no strict 'refs';
         *{$class . '::' . $rel->inverse_method} = sub {
+            # Build method for the "to" class (returns one record)
             my $self = shift;
             my %conditions;
             $conditions{"me.$_"} = $self->$_ foreach @pk;
@@ -74,8 +78,9 @@ sub add_relationship {
             $inverse_rs = $inverse_rs->search(\%conditions);
             given ( $rel->inverse_result_as ) {
                 when ('all')          { return $inverse_rs->all;         }
+                when ('resultset')    { return $inverse_rs;              }
                 when ('as_iterator')  { return $inverse_rs->as_iterator; }
-                default               { return $inverse_rs;              }
+                default               { return $inverse_rs->single;      }
             }
         };
     }

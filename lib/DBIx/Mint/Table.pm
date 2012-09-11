@@ -16,7 +16,7 @@ sub insert {
     my $proto = shift;
     my $class = ref $proto ? ref $proto : $proto;
     my $schema = DBIx::Mint::Schema->instance->for_class($class)
-        || croak "A schema definition for class $class is needed to use DBIx::Mint::ResourceSet::Table";
+        || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
     my $prim_key = $schema->pk->[0];
     
     # Build SQL insert statement
@@ -98,7 +98,7 @@ sub delete {
     my $proto = $_[0];
     my $class = ref $proto ? ref $proto : $proto;
     my $schema = DBIx::Mint::Schema->instance->for_class($class)
-        || croak "A schema definition for class $class is needed to use DBIx::Mint::ResourceSet::Table";
+        || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
 
     # Build the SQL
     my ($sql, @bind);

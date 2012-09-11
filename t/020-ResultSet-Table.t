@@ -1,9 +1,12 @@
 #!/usr/bin/perl
 
-use DBI;
+use lib 't';
+use Test::DB;
 use Test::More;
 use strict;
 use warnings;
+
+# Tests for DBIx::Mint::Table
 
 BEGIN {
     use_ok 'DBIx::Mint';
@@ -11,10 +14,7 @@ BEGIN {
     use_ok 'DBIx::Mint::Schema';
 }
 
-# Tests for ResultSet::Table
-
-my $dbh  = DBI->connect('dbi:SQLite:dbname=t/bloodbowl.db', '', '',
-    { AutoCommit => 1, RaiseError => 1 });
+my $dbh  = Test::DB->init_db;
 my $mint = DBIx::Mint->instance( dbh => $dbh );
 isa_ok( $mint, 'DBIx::Mint');
 
@@ -27,7 +27,6 @@ $schema->add_class(
 );
 isa_ok( $schema, 'DBIx::Mint::Schema');
 
-# Tests for Find
 {
     package Bloodbowl::Coach;
     use Moo;
@@ -38,6 +37,9 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     has email        => ( is => 'rw' );
     has password     => ( is => 'rw' );
 }
+
+
+# Tests for Find
 {
     my $user = Bloodbowl::Coach->find({ name => 'user_a' });
     isa_ok($user, 'Bloodbowl::Coach');

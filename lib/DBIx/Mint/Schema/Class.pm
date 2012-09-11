@@ -6,7 +6,7 @@ use Moo;
 has class            => ( is => 'ro', required  => 1 );
 has table            => ( is => 'ro', required  => 1 );
 has pk               => ( is => 'ro', required  => 1 );
-has fields_not_in_db => ( is => 'rw', default   => sub { ['resultset'] });
+has fields_not_in_db => ( is => 'rw', default   => sub { [] });
 has auto_pk          => ( is => 'ro', predicate => 1 );
 
 sub BUILDARGS {
