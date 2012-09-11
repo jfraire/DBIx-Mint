@@ -132,6 +132,7 @@ sub _join {
     return $new_self;
 }
 
+# Main select method
 sub select_sql {
     my $self = shift;
     
@@ -206,6 +207,7 @@ sub as_iterator {
     $self->iterator( $iterator );
 }
 
+# Set the class we bless rows into
 sub set_target_class {
     my ($self, $target) = @_;
     $self->target_class($target);
@@ -216,7 +218,7 @@ sub inflate {
     my ($self, $row) = @_;
     return undef unless defined $row;
     return $row  unless $self->has_target_class;
-    return bless $row, $self->target_class;
+    return bless  $row, $self->target_class;
 }
 
 1;

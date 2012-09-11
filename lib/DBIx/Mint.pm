@@ -14,7 +14,7 @@ has abstract => (
     },
 );
 
-has dbh => ( is => 'rw', predicate => 1 );
+has dbh    => ( is => 'rw', predicate => 1 );
 
 sub do_transaction {
     my ($self, $trans) = @_;
