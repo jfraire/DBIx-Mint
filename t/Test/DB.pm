@@ -42,4 +42,17 @@ CREATE TABLE teams (
 );
 
 INSERT INTO teams (name, coach) VALUES ('Tinieblas', 1);
-    
+
+CREATE TABLE players (
+    id        INTEGER PRIMARY KEY,
+    name      TEXT NOT NULL,
+    position  TEXT NOT NULL,
+    team      INTEGER,
+    FOREIGN KEY (team) REFERENCES teams (id)
+);
+
+INSERT INTO players (name, position, team) VALUES ('player1', 'trois-quarts', 1);
+INSERT INTO players (name, position, team) VALUES ('player2', 'trois-quarts', 1);
+INSERT INTO players (name, position, team) VALUES ('player3', 'blitzeur',     1);
+INSERT INTO players (name, position, team) VALUES ('player4', 'recepteur',    1);
+INSERT INTO players (name, position, team) VALUES ('player5', 'lanceur',      1);
