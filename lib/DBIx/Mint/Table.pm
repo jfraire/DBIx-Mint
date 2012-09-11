@@ -154,6 +154,11 @@ sub find_or_create {
     return $obj;
 }
 
+sub result_set {
+    my $class = shift;
+    my $table = DBIx::Mint::Schema->instance->for_class($class)->table;
+    return DBIx::Mint::ResultSet->new( table => $table );
+}
 
 sub _remove_fields {
     my ($schema, $record) = @_;

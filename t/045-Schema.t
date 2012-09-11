@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More;
+use Test::More tests => 8;
 use strict;
 use warnings;
 

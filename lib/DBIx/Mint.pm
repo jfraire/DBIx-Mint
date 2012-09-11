@@ -1,5 +1,6 @@
 package DBIx::Mint;
 
+use DBIx::Mint::Schema;
 use SQL::Abstract::More;
 use Carp;
 use Moo;
@@ -29,6 +30,10 @@ sub do_transaction {
         return undef;
     }
     return 1;
+}
+
+sub schema {
+    return DBIx::Mint::Schema->instance;
 }
 
 1;
