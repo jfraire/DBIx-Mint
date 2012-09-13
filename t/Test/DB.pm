@@ -56,3 +56,10 @@ INSERT INTO players (name, position, team) VALUES ('player2', 'trois-quarts', 1)
 INSERT INTO players (name, position, team) VALUES ('player3', 'blitzeur',     1);
 INSERT INTO players (name, position, team) VALUES ('player4', 'recepteur',    1);
 INSERT INTO players (name, position, team) VALUES ('player5', 'lanceur',      1);
+
+CREATE TABLE skills (
+    name     TEXT PRIMARY KEY,
+    category TEXT NOT NULL
+);
+
+INSERT INTO skills (name, category) VALUES ('skill name', 'category name');

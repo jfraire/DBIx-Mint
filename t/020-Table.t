@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 27;
+use Test::More tests => 28;
 use strict;
 use warnings;
 
@@ -25,6 +25,12 @@ $schema->add_class(
     pk       => 'id',
     auto_pk  => 1
 );
+$schema->add_class(
+    class    => 'Bloodbowl::Skill',
+    table    => 'skills',
+    pk       => 'name',
+);
+
 isa_ok( $schema, 'DBIx::Mint::Schema');
 
 {
@@ -37,7 +43,14 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     has email        => ( is => 'rw' );
     has password     => ( is => 'rw' );
 }
-
+{
+    package Bloodbowl::Skill;
+    use Moo;
+    with 'DBIx::Mint::Table';
+    
+    has name         => ( is => 'rw' );
+    has category     => ( is => 'rw' );
+}
 
 # Tests for Find
 {
@@ -75,9 +88,14 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
 {
     my $id   = Bloodbowl::Coach->insert(name => 'user g', email => 'g@blah.com', password => 'xxxx');
     my $user = Bloodbowl::Coach->find($id);
-    is $user->name, 'user g', 'Inserted and then retrieved user correctly'; 
+    is $user->name, 'user g', 'Inserted and then retrieved a hash correctly'; 
 }
-
+{
+    my $id   = Bloodbowl::Skill->insert(name => 'skill a', category => 'category a');
+    my $test = Bloodbowl::Skill->find($id);
+    is $test->name, $id,      'Inserted and then retrieved a simple hash in a non-auto pk table';
+}    
+    
 # Tests for create
 {
     my $user = Bloodbowl::Coach->create(name => 'user i', email => 'i@blah.com', password => 'xxxx');

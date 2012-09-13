@@ -54,17 +54,24 @@ sub insert {
             croak "Insert failed: All objects must have the same fields"
                 unless @$obj_fields ~~ @$fields;
             $sth->execute(@$obj_values);
-            my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);
-            push @ids, $id;
-            $obj->{$prim_key} = $id;
+            if ($schema->auto_pk) {
+                my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);
+                $obj->{$prim_key} = $id;
+            }
+            push @ids, @$obj{ @{ $schema->pk } }; 
         }
     }
     else {
         # Inserting an object
         $sth->execute(@$values);
-        my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);
-        push @ids, $id;
-        $proto->{$prim_key} = $id if ref $proto;
+        if ($schema->auto_pk) {
+            my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);
+            $proto->{$prim_key} = $id if ref $proto;
+            push @ids, $id;
+        }
+        else {
+            push @ids, @$data{ @{ $schema->pk } };
+        }
     }
     return wantarray ? @ids : $ids[0];
 }
