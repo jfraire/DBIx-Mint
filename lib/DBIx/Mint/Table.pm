@@ -21,18 +21,17 @@ sub insert {
     
     # Build SQL insert statement
     my $data;
-    if (ref $proto) {
+    if (!@_) {
         # Inserting an object
-        $data              = _remove_fields($schema, $proto);
+        $data = _remove_fields($schema, $proto);
     }
     elsif (ref $_[0]) {
-        # Called as class method; inserting a set of objects
-        $data              = _remove_fields($schema, $_[0]);
+        # Inserting a set of objects
+        $data = _remove_fields($schema, $_[0]);
     }
     else {
         # Called as class method for a single object (not a ref)
-        my %tmp_obj        = @_;
-        $data              = _remove_fields($schema, \%tmp_obj);
+        $data   = _remove_fields($schema, { @_ });
     }
     my ($fields, $values) = _sort_and_quote_hash($data);
     
@@ -62,7 +61,7 @@ sub insert {
         }
     }
     else {
-        # Inserting an object
+        # Inserting a single object
         $sth->execute(@$values);
         if ($schema->auto_pk) {
             my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);

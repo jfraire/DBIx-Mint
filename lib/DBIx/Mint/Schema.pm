@@ -3,6 +3,7 @@ package DBIx::Mint::Schema;
 use DBIx::Mint::ResultSet;
 use DBIx::Mint::Schema::Class;
 use DBIx::Mint::Schema::Relationship;
+use Carp;
 use v5.10;
 use Moo;
 with 'MooX::Singleton';
@@ -85,19 +86,31 @@ sub add_relationship {
         };
     }
     
-    # if ( $rel->has_insert_into ) {
-        # my $method = 'insert_into_' . $rel->insert_into || $rel->method;
+    if ( $rel->has_insert_into ) {
+        # We insert a method into the From class side of the relationship.
+        # This method will be called as an instance method.
+        # Its arguments should be a list of hash refs / objects to insert.
+        # Before insertion, we must modify each hash so that it points to the calling
+        # object.
         
-# #         # Our ResultSet must have the ability to insert
-
-# #         no strict 'refs';
-        # *{"$class::$method"} =sub {
-            # my $self = shift;
-            
-# #             # We should receive a list of hash refs/objects for this to work
-            
-# #         };
-    # }
+        my $from_class = $from->class;
+        my $method     = $rel->insert_into;
+        my $to_class   = $to->class;
+        my %conditions = %{ $rel->conditions };
+        
+        no strict 'refs';
+        *{$from_class . '::' . $method} = sub {
+            my $self   = shift;
+            my @copies;
+            foreach my $record (@_) {
+                while (my ($from_field, $to_field) = each %conditions) {
+                    $record->{$to_field} = $self->{$from_field};
+                }
+                push @copies, $record;
+            }
+            return $to_class->insert(@copies);
+        };
+    }
 }
 
 1;

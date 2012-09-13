@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 39;
+use Test::More tests => 44;
 use strict;
 use warnings;
 
@@ -23,15 +23,18 @@ isa_ok($rs, 'DBIx::Mint::ResultSet');
                     ->left_join (['table3','t3'], {  field2 => 'field1'    });
     isa_ok($new_rs, 'DBIx::Mint::ResultSet');
     my ($sql, @bind) = $new_rs->select_sql;
-    like( $sql, qr{FROM craters AS me INNER JOIN table2 AS t2 ON \( me\.field1 = t2\.field2 \) LEFT OUTER JOIN table3 AS t3 ON \( me\.field2 = t3\.field1 \)},
-        'SQL from joined tables set correctly');
+    like( $sql, qr{FROM craters AS me INNER JOIN table2 AS t2 ON}, 'SQL from joined tables set correctly 1');
+    like( $sql, qr{me\.field1 = t2\.field2},                       'SQL from joined tables set correctly 2');
+    like( $sql, qr{LEFT OUTER JOIN table3 AS t3 ON},               'SQL from joined tables set correctly 3');
+    like( $sql, qr{me\.field2 = t3\.field1},                       'SQL from joined tables set correctly 4');
 }
 {
-    my $new_rs = $rs->inner_join(['table2','t2'], [{ 't2.field1' => 'me.field2' }, { 'me.field3' => 't2.field4' }]);
+    my $new_rs = $rs->inner_join(['table2','t2'], { 't2.field1' => 'me.field2', 'me.field3' => 't2.field4' });
     isa_ok($new_rs, 'DBIx::Mint::ResultSet');
     my ($sql,@bind) = $new_rs->select_sql;
-    like( $sql, qr{SELECT \* FROM craters AS me INNER JOIN table2 AS t2 ON \( \( me\.field3 = t2\.field4 AND t2\.field1 = me\.field2 \) \)},
-        'SQL from joined tables with multiple conditions set correctly');
+    like( $sql, qr{INNER JOIN table2 AS t2 ON}, 'SQL from joined tables with multiple conditions set correctly 1');
+    like( $sql, qr{me\.field3 = t2\.field4},    'SQL from joined tables with multiple conditions set correctly 2');
+    like( $sql, qr{t2\.field1 = me\.field2},    'SQL from joined tables with multiple conditions set correctly 3');
 }
 
 # Tests for selecting columns (add_columns)

@@ -26,7 +26,7 @@ sub BUILDARGS {
         croak 'DBIx::Mint::Schema cannot link automatically a class with multiple primary keys. '
             . 'Please define the conditions to join the two tables using \'conditions\'.'
             if scalar @$from_pk > 1;
-        $args{conditions} = [{ $from_pk->[0] => delete $args{to_field} }];
+        $args{conditions} = { $from_pk->[0] => delete $args{to_field} };
     }
 
     return \%args;
@@ -34,8 +34,7 @@ sub BUILDARGS {
 
 sub inverse_conditions {
     my $self = shift;
-    my %val;
-    return [ map { { reverse %$_ } } @{ $self->conditions } ];
+    return { reverse %{ $self->conditions } };
 }
 
 1;

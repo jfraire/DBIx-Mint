@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 20;
+use Test::More tests => 26;
 use strict;
 use warnings;
 
@@ -107,7 +107,7 @@ isa_ok($team_rs, 'DBIx::Mint::ResultSet');
     $schema->add_relationship(
         from_class        => 'Bloodbowl::Coach',
         to_class          => 'Bloodbowl::Blah',
-        conditions        => [ { coach_f1 => 'blah_field1'}, { coach_f2 => 'blah_field2'} ],
+        conditions        => { coach_f1 => 'blah_field1', coach_f2 => 'blah_field2'},
         method            => 'get_blah',
         result_as         => 'resultset',
         inverse_method    => 'get_coach',
@@ -115,15 +115,20 @@ isa_ok($team_rs, 'DBIx::Mint::ResultSet');
     );
     my $rs = $coach->get_blah;
     isa_ok( $rs, 'DBIx::Mint::ResultSet');
-    my ($sql, @bind) = $rs->select_sql;
-    is($sql, q{SELECT blah.* FROM coaches AS me INNER JOIN blah AS blah ON ( ( me.coach_f1 = blah.blah_field1 AND me.coach_f2 = blah.blah_field2 ) ) WHERE ( me.id = ? )},
-        'ResultSet for a multi-column primary key produces correct SQL');
+    my  ($sql, @bind) = $rs->select_sql;
+    like $sql, qr{INNER JOIN blah AS blah},         'ResultSet for multi-column primary key test 1';
+    like $sql, qr{me\.coach_f1 = blah\.blah_field1},'ResultSet for multi-column primary key test 2';
+    like $sql, qr{me\.coach_f2 = blah\.blah_field2},'ResultSet for multi-column primary key test 3';
+    like $sql, qr{WHERE \( me\.id = \? \)},         'ResultSet for a multi-column primary key produces correct SQL';
     
     my $blah = Bloodbowl::Blah->new;
     $rs = $blah->get_coach;
     isa_ok( $rs, 'DBIx::Mint::ResultSet');
     ($sql, @bind) = $rs->select_sql;
-    is($sql, q{SELECT coaches.* FROM blah AS me INNER JOIN coaches AS coaches ON ( ( me.blah_field1 = coaches.coach_f1 AND me.blah_field2 = coaches.coach_f2 ) ) WHERE ( ( me.field1 = ? AND me.field2 = ? ) )},
+    like($sql, qr{INNER JOIN coaches AS coaches},      'Inverse ResultSet for multi-column primary key test 1'),
+    like($sql, qr{me\.blah_field1 = coaches\.coach_f1},'Inverse ResultSet for multi-column primary key test 2'),
+    like($sql, qr{me\.blah_field2 = coaches\.coach_f2},'Inverse ResultSet for multi-column primary key test 3'),
+    like($sql, qr{me\.field1 = \? AND me\.field2 = \?},
         'Inverse ResultSet for a multi-column primary key produces correct SQL');    
 }
 
