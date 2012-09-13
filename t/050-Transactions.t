@@ -3,7 +3,6 @@
 use lib 't';
 use Test::DB;
 use Test::More tests => 12;
-use Test::Warn;
 use strict;
 use warnings;
 
@@ -13,81 +12,88 @@ BEGIN {
     use_ok 'DBIx::Mint';
 }
 
-{
-    package Bloodbowl::Coach; use Moo;
-    with 'DBIx::Mint::Table';
-    
-    has id           => ( is => 'rw', predicate => 1 );
-    has name         => ( is => 'rw' );
-    has email        => ( is => 'rw' );
-    has password     => ( is => 'rw' );
-}
+SKIP: {
+    eval { require Test::Warn };
+    skip "Test::Warn required to test transactions", 11 
+        if $@;
 
-my $mint   = DBIx::Mint->instance;
-my $schema = $mint->schema;
-isa_ok( $mint,   'DBIx::Mint');
-isa_ok( $schema, 'DBIx::Mint::Schema');
+    {
+        package Bloodbowl::Coach; use Moo;
+        with 'DBIx::Mint::Table';
+        
+        has id           => ( is => 'rw', predicate => 1 );
+        has name         => ( is => 'rw' );
+        has email        => ( is => 'rw' );
+        has password     => ( is => 'rw' );
+    }
 
-$schema->add_class(
-    class    => 'Bloodbowl::Coach',
-    table    => 'coaches',
-    pk       => 'id',
-    auto_pk  => 1
-);
+    my $mint   = DBIx::Mint->instance;
+    my $schema = $mint->schema;
+    isa_ok( $mint,   'DBIx::Mint');
+    isa_ok( $schema, 'DBIx::Mint::Schema');
 
-my $dbh = Test::DB->init_db;
-$mint->dbh($dbh);
+    $schema->add_class(
+        class    => 'Bloodbowl::Coach',
+        table    => 'coaches',
+        pk       => 'id',
+        auto_pk  => 1
+    );
 
-# Test failed transaction
-{
-    my $transaction = sub {
-        # This is the transaction
+    my $dbh = Test::DB->init_db;
+    $mint->dbh($dbh);
+
+    # Test failed transaction
+    {
+        my $transaction = sub {
+            # This is the transaction
+            my $coach = Bloodbowl::Coach->find(1);
+            $coach->name('user x');
+            $coach->update;
+            
+            my $test = Bloodbowl::Coach->find(1);
+            is($test->name, 'user x',  'Record updated within transaction');
+            
+            die "Abort transaction";
+        };
+
+        my $res;
+        &Test::Warn::warning_is(
+            sub { $res = $mint->do_transaction( $transaction ) },
+            "Transaction failed: Abort transaction",
+            'Failed transactions emit a warning');
+            
+        is $res, undef, 'Failed transactions return undef';
+
         my $coach = Bloodbowl::Coach->find(1);
-        $coach->name('user x');
-        $coach->update;
-        
-        my $test = Bloodbowl::Coach->find(1);
-        is($test->name, 'user x',  'Record updated within transaction');
-        
-        die "Abort transaction";
-    };
+        isnt $coach->name, 'user x',   'Failed transactions are rolled back successfuly';
+        is   $coach->name, 'julio_f',  'Record was not changed by a rolled back transaction';
+    }
 
-    my $res;
-    warning_is
-        { $res = $mint->do_transaction( $transaction ) }
-        "Transaction failed: Abort transaction",
-        'Failed transactions emit a warning';
-        
-    is $res, undef, 'Failed transactions return undef';
+    # Test commited transaction
+    {
+        my $transaction = sub {
+            # This is the transaction
+            my $coach = Bloodbowl::Coach->find(1);
+            $coach->name('user x');
+            $coach->update;
+            
+            my $test = Bloodbowl::Coach->find(1);
+            is($test->name, 'user x',  'Record updated within transaction');
+        };
 
-    my $coach = Bloodbowl::Coach->find(1);
-    isnt $coach->name, 'user x',   'Failed transactions are rolled back successfuly';
-    is   $coach->name, 'julio_f',  'Record was not changed by a rolled back transaction';
-}
+        my $res;
+        &Test::Warn::warning_is(
+            sub { $res = $mint->do_transaction( $transaction ) },
+            undef,
+            'Successful transactions do not emit warnings');
+            
+        is $res, 1, 'Successful transactions return the one true value';
 
-# Test commited transaction
-{
-    my $transaction = sub {
-        # This is the transaction
         my $coach = Bloodbowl::Coach->find(1);
-        $coach->name('user x');
-        $coach->update;
-        
-        my $test = Bloodbowl::Coach->find(1);
-        is($test->name, 'user x',  'Record updated within transaction');
-    };
+        is $coach->name, 'user x',   'Successful transactions are commited';
+    }
 
-    my $res;
-    warning_is
-        { $res = $mint->do_transaction( $transaction ) }
-        undef,
-        'Successful transactions do not emit warnings';
-        
-    is $res, 1, 'Successful transactions return the one true value';
-
-    my $coach = Bloodbowl::Coach->find(1);
-    is $coach->name, 'user x',   'Successful transactions are commited';
+    $dbh->disconnect;
 }
 
-$dbh->disconnect;
 done_testing();

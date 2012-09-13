@@ -1,16 +1,22 @@
-DBIx-Mint version 0.01
-======================
+DBIx-Mint
+=========
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+Yet another object-relational mapping module for Perl. Its goals are:
 
-A README file is required for CPAN modules since CPAN extracts the
-README file from a module distribution so that people browsing the
-archive can use it get an idea of the modules uses. It is usually a
-good idea to provide version information here so that people can
-decide whether fixes for the module are worth downloading.
+* To provide flexible, chaineable methods to fetch data from a database
+* To provide a flexible, powerful way to build relationships between classes
+* It does not generate accessors, so you can use it on top of your existing classes
+* To be light on dependencies
+
+On the other side of the equation, it has some strong restrictions and drawbacks:
+
+* It supports a single database handle
+* While it uses roles (through Role::Tiny), it does put a lot of methods on your namespace
+* It only uses DBI for the database connection and it makes no effort to keep it alive for long-running processes. You should take care of this in a persistent environment.
+
+There are many ORMs for Perl. Most notably, you should look at DBIx::Class and DBIx::DataModel. DBIx::Lite is a light-weight alternative to those two mature, enterprise-level ORMs.
+
+Note that this is a new distribution, and it is likely to change.
 
 INSTALLATION
 
@@ -25,11 +31,21 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  blah blah blah
+* Perl version 5.10 or higher (to use given/when constructs and smart matching for array comparisons)
+* DBI
+* Moo
+* SQL::Abstract::More
+* Role::Tiny (a dependency of Moo, anyway)
+* MooX::Singleton
+* List::MoreUtils
+* Clone
+
+For testing, the following non-core modules are also used. These are not required:
+
+* Test::Warn
+
 
 COPYRIGHT AND LICENCE
-
-Put the correct copyright and licence information here.
 
 Copyright (C) 2012 by Julio Fraire
 

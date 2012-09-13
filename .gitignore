@@ -1,1 +1,7 @@
 t/bloodbowl.db
+MANIFEST.SKIP.bak
+MANIFEST.bak
+MYMETA.*
+Makefile
+blib/
+pm_to_blib

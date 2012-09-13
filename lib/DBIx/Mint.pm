@@ -42,40 +42,15 @@ sub schema {
 
 =head1 NAME
 
-DBIx::Mint - A light-weight ORM without accessor generation
-
+DBIx::Mint - Yet another light-weight ORM
 
 =head1 VERSION
 
-This documentation refers to 
-
-DBIx::Mint 0.01
+This documentation refers to DBIx::Mint 0.01
 
 =head1 SYNOPSIS
 
-Without a schema you can only fetch data. No data modification methods are offered:
- 
- use DBIx::Mint;
- use DBI;
- 
- # Connect to the database
- my $dbh  = DBI->connect(...);
- my $mint = DBIx::Mint->instance( dbh => $dbh );
- 
- # Without a schema, you can use the DBIx::Mint::ResultSet class
- my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
- 
- # Joins. This will retrieve all the players for coach #1
- my @team_players = $rs->search( { 'me.id' => 1 } )
-                       ->inner_join('teams',    { 'me.id'    => 'coach' })
-                       ->inner_join( 'players', { 'teams.id' => 'team'  })
-                       ->all;
-
-See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use.
-
-Once you add a schema you can add relationships and you can modify data.
-
-Somewhere in your code you have defined your classes, with all of your business logic:
+Imagine that you already have defined your classes along with your business logic in some modules. Your classes should use the role L<DBIx::Mint::Table> to get database access and modification super powers:
 
  package Bloodbowl::Team;
  use Moo;
@@ -84,6 +59,10 @@ Somewhere in your code you have defined your classes, with all of your business 
  has id   => (is => 'rw' );
  has name => (is => 'rw' );
  ...
+
+That will work if nearby (probably in a module of its own), you have defined the schema for your classes:
+
+ package Bloodbowl::Schema;
 
  my $schema = $mint->schema;
  $schema->add_class(
@@ -108,8 +87,18 @@ Somewhere in your code you have defined your classes, with all of your business 
      method         => 'get_players',
      inverse_method => 'get_team',
  );
+
+And in your your scripts:
  
- my $team = Bloodbowl::Team->find(1);
+ use DBIx::Mint;
+ use My::Schema;
+ use DBI;
+ 
+ # Connect to the database
+ my $dbh  = DBI->connect(...);
+ my $mint = DBIx::Mint->instance( dbh => $dbh );
+ 
+ my $team    = Bloodbowl::Team->find(1);
  my @players = $team->get_players;
  
  # Database modification methods include insert, update, and delete.
@@ -118,10 +107,23 @@ Somewhere in your code you have defined your classes, with all of your business 
  $team->name('Los Invencibles');
  $team->update;
  
- Bloodbowl::Coach->update({ status => 'suspended' }, { password => 'blocked' });
+ Bloodbowl::Coach->update(
+    { status => 'suspended' }, 
+    { password => 'blocked' });
  
-In this case, you can get the full documentation by looking at L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>. 
+To find the documentation you need to set the schema and data modification methods, look into L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>.
+
+Without a schema you can only fetch data. No data modification methods are offered:
+  
+ my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
  
+ # Joins. This will retrieve all the players for coach #1
+ my @team_players = $rs->search( { 'me.id' => 1 } )
+   ->inner_join( 'teams',   { 'me.id'    => 'coach' })
+   ->inner_join( 'players', { 'teams.id' => 'team'  })
+   ->all;
+
+See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use.
  
 =head1 DESCRIPTION
 
@@ -145,7 +147,7 @@ On the other side of the equation, it has some strong restrictions:
 
 =item * It supports a single database handle
 
-=item * While it uses roles (through Role::Tiny), it does put a lot of methods on your namespace
+=item * While it uses roles (through Role::Tiny/Moo::Role), it does put a lot of methods on your namespace. See L<DBIx::Mint::Table> for the list. L<DBIx::Mint::ResultSet> does not mess with your namespace at all.
 
 =item * It only uses DBI for the database connection and it makes no effort to keep it alive for long-running processes.
 
@@ -157,13 +159,15 @@ Note that this module is in its infancy and it is very likely to change or (gasp
 
 =head1 DOCUMENTATION
 
-The documentation is split in three parts:
+The documentation is split into four parts:
 
 =over
 
-=item * This general view
+=item * This general view. The class DBIx::Mint defines a singleton that simply holds the L<SQL::Abstract::More> object and the database handle. It implements transactions. The methods described in the next section are all defined in this module.
 
 =item * L<DBIx::Mint::Schema> documents relationships and the mapping between classes and database tables. Look there to find out how to specify table names, primary keys and how to create associations between classes.
+
+=item * L<DBIx::Mint::Table>, which implements class and instance methods that modify or fetch data from a single table.
 
 =item * L<DBIx::Mint::ResultSet> is the API to fetch information from the database. Internally, associations are implemented using ResultSet objects.
 
@@ -179,7 +183,7 @@ Returns an instance of DBIx::Mint. It is a singleton, so you can access it from 
 
 =head2 dbh
 
-This is the accessor/mutator of the database handle. To give DBIx::Mint a database connection, do:
+This is the accessor/mutator for the database handle. To give DBIx::Mint a database connection, do:
 
  # Connect to the database
  my $dbh  = DBI->connect(...);
@@ -191,10 +195,12 @@ or:
  
 =head2 abstract
 
-This is the accessor/mutator of the L<SQL::Abstract::More> subjacent object. You can choose to build your own object with the parameters you need and then simply stuff it into your DBIx::Mint instance:
+This is the accessor/mutator for the L<SQL::Abstract::More> subjacent object. You can choose to build your own object with the parameters you need and then simply stuff it into your DBIx::Mint instance:
 
  my $sql = SQL::Abstract::More->new(...);
  $mint->abstract($sql);
+ 
+ You can also use the default object, which is created with the defaults of SQL::Abstract::More.
 
 =head2 schema
 
@@ -210,6 +216,10 @@ This method will take a code reference and execute it within a transaction block
 
 =head1 DIAGNOSTICS
 
+These are the diagnostic messages thrown by this distribution.
+
+=head2 DBIx::Mint
+
 =over
 
 =item Transaction failed
@@ -218,90 +228,71 @@ This means that the code reference run in a transaction died. This is just a war
 
 =back
 
+=head2 DBIx::Mint::ResultSet
 
+=over
 
-=head1 CONFIGURATION AND ENVIRONMENT
+=item The database handle has not been established
 
-A full explanation of any configuration system(s) used by the module,
-including the names and locations of any configuration files, and the
-meaning of any environment variables or properties that can be set. These
-descriptions must also include details of any configuration language used.
-(See also "Configuration Files" in Chapter 19.)
+Thrown by C<select_sth>. It means that you have not fed the database handle to the DBIx::Mint singleton. Make sure you did not call C<DBIx::Mint-E<gt>new> instead of C<DBIx::Mint-E<gt>instance> somewhere in your code. C<new> will return a, well, new instance of DBIx::Mint, which does not have the database handle and which will not be guarded as a singleton.
+
+=back
+
+=head2 DBIx::Mint::Table
+
+=over
+
+=item A schema definition for class My::Class is needed to use DBIx::Mint::Table
+
+This means that DBIx::Mint::Table could not find the schema for the class that is trying to use its methods.
+
+=item find must be called as a class method
+
+Message thrown by the C<find> method. It cannot be called from an object; it is a class method only:
+
+ $obj->find(33);              # Will croak
+ Bloodbowl::Coach->find(33);  # Is correct
+
+=back
 
 
 =head1 DEPENDENCIES
 
-A list of all the other modules that this module relies upon, including any
-restrictions on versions, and an indication of whether these required modules are
-part of the standard Perl distribution, part of the module's distribution,
-or must be installed separately.
+This distribution depends on the following external, non-core modules:
 
+=over
 
-=head1 INCOMPATIBILITIES
+=item Moo
 
-A list of any modules that this module cannot be used in conjunction with.
-This may be due to name conflicts in the interface, or competition for
-system or program resources, or due to internal limitations of Perl
-(for example, many modules that use source code filters are mutually
-incompatible).
+=item MooX::Singleton
 
+=item SQL::Abstract::More
+
+=item DBI
+
+=item List::MoreUtils
+
+=item Clone
+
+=back
 
 =head1 BUGS AND LIMITATIONS
 
-A list of known problems with the module, together with some indication of
-whether they are likely to be fixed in an upcoming release.
-
-Also a list of restrictions on the features the module does provide:
-data types that cannot be handled, performance issues and the circumstances
-in which they may arise, practical limitations on the size of data sets,
-special cases that are not (yet) handled, etc.
-
-The initial template usually just has:
-
-
-
-There are no known bugs in this module.
-Please report problems to 
-
-<Maintainer name(s)>
-
-  (
-
-<contact address>
-
-)
-Patches are welcome.
+There are no known bugs in this module (as it is too young). Please report problems to the author. Patches are welcome.
 
 =head1 ACKNOWLEDGEMENTS
 
-This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci. The benefits of that module over DBIx::Mint are that it does provide accessors and it does allow for record modifications without using a schema. The main benefits of this module over DBIx::Lite is that relationships are more flexible, and you are allowed to have more than one relationships between two tables.
+This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci. The benefits of that module over DBIx::Mint are that it does provide accessors and it does allow for record modifications without using a schema. The main benefits of this module over DBIx::Lite is that relationships are more flexible, and you are allowed to have more than one relationship between two tables.
 
 =head1 AUTHOR
 
-<Author name(s)>
-
- (
-
-<contact address>
-
-)
+Julio Fraire, <julio.fraire@gmail.com>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 
+Copyright (c) 2012, Julio Fraire. All rights reserved.
 
-<year> <copyright holder>
-
- (
-
-<contact address>
-
-). All rights reserved.
-
-followed by whatever licence you wish to release it under.
-For Perl code that is often just:
-
-
+=head1 LICENSE
 
 This module is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself. See L<perlartistic>.
