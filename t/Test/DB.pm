@@ -63,3 +63,16 @@ CREATE TABLE skills (
 );
 
 INSERT INTO skills (name, category) VALUES ('skill name', 'category name');
+INSERT INTO skills (name, category) VALUES ('skill a',    'category a'   );
+INSERT INTO skills (name, category) VALUES ('skill b',    'category b'   );
+INSERT INTO skills (name, category) VALUES ('skill c',    'category c'   );
+
+CREATE TABLE player_skills (
+    player    INTEGER,
+    skill     TEXT,
+    FOREIGN KEY (player) REFERENCES players (id),
+    FOREIGN KEY (skill)  REFERENCES skills  (name)
+);
+
+INSERT INTO player_skills (player, skill) VALUES (1, 'skill a');
+INSERT INTO player_skills (player, skill) VALUES (1, 'skill b');

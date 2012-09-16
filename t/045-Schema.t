@@ -6,6 +6,8 @@ use Test::More tests => 8;
 use strict;
 use warnings;
 
+### Tests for adding relationships -- using iterators
+
 BEGIN {
     use_ok 'DBIx::Mint';
     use_ok 'DBIx::Mint::Schema';
@@ -61,8 +63,6 @@ $schema->add_class(
     pk       => 'id',
     auto_pk  => 1
 );
-
-### Tests for adding relationships
 
 # This is a one-to-one relationship...
 $schema->add_relationship(

@@ -4,6 +4,8 @@ use Test::More tests => 26;
 use strict;
 use warnings;
 
+### Tests for adding relationships -- Basic tests
+
 BEGIN {
     use_ok 'DBIx::Mint::Schema';
 }
@@ -64,7 +66,6 @@ is_deeply($schema->for_class('Bloodbowl::Blah')->pk(), ['field1', 'field2'],
 ok(!$schema->for_class('Bloodbowl::Blah')->auto_pk(),
     'Accessor for the schema of a class works fine (no auto_pk)');
 
-### Tests for adding relationships
 
 $schema->add_relationship(
     from_class        => 'Bloodbowl::Coach',

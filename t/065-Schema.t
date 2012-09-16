@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 14;
+use Test::More tests => 15;
 use strict;
 use warnings;
 
@@ -11,6 +11,7 @@ use warnings;
 BEGIN {
     use_ok 'DBIx::Mint';
     use_ok 'DBIx::Mint::Schema';
+    use_ok 'DBIx::Mint::ResultSet';
 }
 
 {

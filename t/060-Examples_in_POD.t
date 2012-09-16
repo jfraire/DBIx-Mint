@@ -88,6 +88,19 @@ isa_ok $mint, 'DBIx::Mint';
     my $test = Bloodbowl::Team->find(1);
     is $test->name, 'Los Invencibles',   'Record updated correctly';
 }
+{
+    my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
+    my ($sql) = $rs->inner_join( 'teams', { id => 'coach' } )->select_sql;
+    like $sql, qr{SELECT \* FROM coaches AS me},   'Join conditions are correct 1';
+    like $sql, qr{INNER JOIN teams AS teams},      'Join conditions are correct 2';
+    like $sql, qr{me\.id = teams\.coach},          'Join conditions are correct 3';
+}
+{
+    my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
+    my ($sql) =$rs->inner_join( ['teams', 't'], { 'me.id' => 't.coach' } )->select_sql;
+    like $sql, qr{SELECT \* FROM coaches AS me INNER JOIN teams AS t ON \( me\.id = t\.coach \)},
+        'Join with aliased tables works as advertised';
+}
 
 $dbh->disconnect;
 done_testing();

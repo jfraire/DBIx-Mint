@@ -107,7 +107,6 @@ sub _join {
     my ($operation, $table, $conditions) = @_;
     my $table_name;
     my $table_alias;
-#    $conditions = [$conditions] unless ref $conditions eq 'ARRAY';
     if (ref $table) {
         ($table_name, $table_alias) = @$table;
     }
@@ -118,7 +117,6 @@ sub _join {
 
     my $new_self = $self->_clone;
     my @join_conditions;
-#    foreach my $condition (@$conditions) {
     while (my ($field1, $field2) = each %$conditions) {
         if ($field1 !~ /\./) {
             $field1 = "me.$field1";
