@@ -2,11 +2,11 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests;
+use Test::More tests => 13;
 use strict;
 use warnings;
 
-### Tests for one_to_many
+### Tests for many_to_many
 
 BEGIN {
     use_ok 'DBIx::Mint';
@@ -15,11 +15,12 @@ BEGIN {
 }
 
 {
-    package Bloodbowl::Skill; use Moo;
+    package Bloodbowl::Team; use Moo;
     with 'DBIx::Mint::Table';
 
+    has id           => ( is => 'rw' );
     has name         => ( is => 'rw' );
-    has category     => ( is => 'rw' );
+    has coach        => ( is => 'rw' );
 }
 {
     package Bloodbowl::Player; use Moo;
@@ -35,8 +36,8 @@ my $schema = DBIx::Mint::Schema->instance;
 isa_ok( $schema, 'DBIx::Mint::Schema');
 
 $schema->add_class(
-    class    => 'Bloodbowl::Skill',
-    table    => 'skills',
+    class    => 'Bloodbowl::Team',
+    table    => 'teams',
     pk       => 'id',
     auto_pk  => 1
 );
@@ -48,34 +49,36 @@ $schema->add_class(
     auto_pk  => 1
 );
 
-# This is a many-to-many relationship...
-$schema->many_to_many(
-    conditions     => [ 'Bloodbowl::Player',       { id => 'player'}, 
-                        'Bloodbowl::PlayerSkills', { skill => 'name'}, 
-                        'Bloodbowl::Skill' ],
-    method         => 'get_skills',
-    inverse_method => 'get_players',
+
+# This is a one-to-many relationship:
+$schema->one_to_many(
+    conditions     => [ 'Bloodbowl::Team', { id => 'team'}, 'Bloodbowl::Player' ], 
+    method         => 'get_players',
+    inverse_method => 'get_team',
 );
-can_ok('Bloodbowl::Team',                   'add_players' );
+
+can_ok('Bloodbowl::Team',                     'get_players');
+can_ok('Bloodbowl::Player',                   'get_team'   );
 
 # Database connection
 my $mint = DBIx::Mint->instance;
 my $dbh  = Test::DB->init_db;
 $mint->dbh($dbh);
-ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
+ok( DBIx::Mint->instance->has_dbh,            'Mint has a database handle');
     
 {
-    my $player = Bloodbowl::Player->find(1);
-    my @skills = $player->get_skills;
-    is @skills, 2,                          'Retrieved all records from a many-to-many relationship';
-    isa_ok $skills[0], 'Bloodbowl::Skill';
+    my $team = Bloodbowl::Team->find(1);
+    isa_ok($team, 'Bloodbowl::Team');
+    my @players = $team->get_players;
+    is @players, 5,                         'The relationship from->to returns all the objects';
+    isa_ok $players[0], 'Bloodbowl::Player';
+    is $players[0]->name, 'player1',        'The returned object are correct';
 }
 {
-    my $skill   = Bloodbowl::Player->find('skill b');
-    my @players = $skill->get_players;
-    is @players, 1,                         'Retrieved all records following the relationship backwards';
-    isa_ok $players[0], 'Bloodbowl::Player';
-    is $players[0]->name, 'player1',        'Retrieved record is correct';
+    my $player = Bloodbowl::Player->find(3);
+    is $player->name, 'player3',            'Retrieved an object from the database';
+    my $team   = $player->get_team;
+    is $team->name, 'Tinieblas',            'Relationship to->from returns a single object';
 }
 
 $dbh->disconnect;

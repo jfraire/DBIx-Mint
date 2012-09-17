@@ -67,7 +67,9 @@ isa_ok $mint, 'DBIx::Mint';
          to_class       => 'Bloodbowl::Player',
          to_field       => 'team',
          method         => 'get_players',
+         result_as      => 'all',
          inverse_method => 'get_team',
+         inv_result_as  => 'single',
     );
 
     my $team = Bloodbowl::Team->find(1);

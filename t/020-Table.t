@@ -91,7 +91,7 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     is $user->name, 'user g', 'Inserted and then retrieved a hash correctly'; 
 }
 {
-    my $id   = Bloodbowl::Skill->insert(name => 'skill a', category => 'category a');
+    my $id   = Bloodbowl::Skill->insert(name => 'skill x', category => 'category x');
     my $test = Bloodbowl::Skill->find($id);
     is $test->name, $id,      'Inserted and then retrieved a simple hash in a non-auto pk table';
 }    

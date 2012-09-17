@@ -58,6 +58,7 @@ $schema->add_relationship(
     result_as      => 'as_iterator',
     insert_into    => 'add_players',
     inverse_method => 'get_team',
+    inv_result_as  => 'single',
 );
 
 can_ok('Bloodbowl::Team',    'add_players' );
