@@ -4,7 +4,6 @@ lib/DBIx/Mint/ResultSet.pm
 lib/DBIx/Mint/ResultSet/Iterator.pm
 lib/DBIx/Mint/Schema.pm
 lib/DBIx/Mint/Schema/Class.pm
-lib/DBIx/Mint/Schema/Relationship.pm
 lib/DBIx/Mint/Table.pm
 Makefile.PL
 MANIFEST
@@ -19,5 +18,9 @@ t/040-Schema.t
 t/045-Schema.t
 t/050-Transactions.t
 t/060-Examples_in_POD.t
+t/065-Schema.t
+t/070-one-to-many.t
+t/075-many-to-many.t
 t/Test/DB.pm
 t/test_database.sql
+temp_pod.pod

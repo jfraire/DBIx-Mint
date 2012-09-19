@@ -21,7 +21,7 @@ sub BUILD {
         if $self->has_auto_pk && @{ $self->pk } > 1;
 }
 
-sub add_to_not_in_db {
+sub not_in_db {
     my $self = shift;
     push @{ $self->fields_not_in_db }, @_;
 }

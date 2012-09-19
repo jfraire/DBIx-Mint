@@ -31,7 +31,10 @@ sub insert {
     }
     else {
         # Called as class method for a single object (not a ref)
-        $data   = _remove_fields($schema, { @_ });
+        eval { $data = {@_} };
+        croak "Arguments to insert are not key, value pairs while trying to insert an object"
+            if $@;
+        $data  = _remove_fields($schema, { @_ });
     }
     my ($fields, $values) = _sort_and_quote_hash($data);
     
@@ -162,8 +165,9 @@ sub find_or_create {
 
 sub result_set {
     my $class = shift;
-    my $table = DBIx::Mint::Schema->instance->for_class($class)->table;
-    return DBIx::Mint::ResultSet->new( table => $table );
+    my $schema = DBIx::Mint::Schema->instance->for_class($class);
+    croak "result_set: The schema for $class is undefined" unless defined $schema;
+    return DBIx::Mint::ResultSet->new( table => $schema->table );
 }
 
 sub _remove_fields {

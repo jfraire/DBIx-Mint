@@ -136,13 +136,13 @@ sub _build_method {
             my $self = shift;
             my %conditions;
             $conditions{"me.$_"} = $self->$_ foreach @pk;
-            $rs = $rs->search(\%conditions);
+            my $rs_copy = $rs->search(\%conditions);
             given ( $result_as ) {
-                when ('single')       { return $rs->single;      }
-                when ('all')          { return $rs->all;         }
-                when ('as_iterator')  { return $rs->as_iterator; }
-                when ('as_sql')       { return $rs->select_sql;  }
-                default               { return $rs;              }
+                when ('single')       { return $rs_copy->single;      }
+                when ('all')          { return $rs_copy->all;         }
+                when ('as_iterator')  { return $rs_copy->as_iterator; }
+                when ('as_sql')       { return $rs_copy->select_sql;  }
+                default               { return $rs_copy;              }
             }
         };
     }
@@ -158,6 +158,8 @@ sub _build_insert_into {
         my @copies;
         foreach my $record (@_) {
             while (my ($from_field, $to_field) = each %$conditions) {
+                croak $class . "::" . $method .": $from_field is not defined" 
+                    if !defined $self->{$from_field};
                 $record->{$to_field} = $self->{$from_field};
             }
             push @copies, $record;

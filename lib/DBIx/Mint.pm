@@ -60,11 +60,11 @@ Imagine that you already have defined your classes along with your business logi
  has name => (is => 'rw' );
  ...
 
-That will work if nearby (probably in a module of its own), you have defined the schema for your classes:
+Nearby (probably in a module of its own), you define the schema for your classes:
 
  package Bloodbowl::Schema;
 
- my $schema = $mint->schema;
+ my $schema = DBIx::Mint->instance->schema;
  $schema->add_class(
      class      => 'Bloodbowl::Team',
      table      => 'teams',
@@ -80,10 +80,8 @@ That will work if nearby (probably in a module of its own), you have defined the
  );
  
  # This is a one-to-many relationship
- $schema->add_relationship(
-     from_class     => 'Bloodbowl::Team',
-     to_class       => 'Bloodbowl::Player',
-     to_field       => 'team',
+ $schema->one_to_many(
+     conditions     => ['Bloodbowl::Team', { id => 'team'}, 'Bloodbowl::Player'],
      method         => 'get_players',
      inverse_method => 'get_team',
  );
@@ -113,7 +111,7 @@ And in your your scripts:
  
 To find the documentation you need to set the schema and data modification methods, look into L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>.
 
-Without a schema you can only fetch data. No data modification methods are offered:
+Without a schema you can only fetch data. No fancy classes calling, either (although we can have blessed hash refs as results). No data modification methods are offered:
   
  my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
  
@@ -123,19 +121,21 @@ Without a schema you can only fetch data. No data modification methods are offer
    ->inner_join( 'players', { 'teams.id' => 'team'  })
    ->all;
 
-See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use.
+See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use to retrieve data.
  
 =head1 DESCRIPTION
 
-Yet another object-relational mapping module for Perl. Its goals are:
+DBIx::Mint is yet another object-relational mapping module for Perl. Its goals are:
 
 =over
+
+=item * To be simple to understand and use
 
 =item * To provide flexible, chaineable methods to fetch data from a database
 
 =item * To provide a flexible, powerful way to build relationships between classes
 
-=item * It does not generate accessors, so you can use it on top of your existing classes
+=item * To play nice with your Moo classes (although we do treat your objects as hash references under the hood)
 
 =item * To be light on dependencies
 
@@ -155,7 +155,7 @@ On the other side of the equation, it has some strong restrictions:
 
 There are many ORMs for Perl. Most notably, you should look at L<DBIx::Class> and L<DBIx::DataModel>. L<DBIx::Lite> is a light-weight alternative to those two, enterprise-level ORMs.
 
-Note that this module is in its infancy and it is very likely to change or (gasp) go unmaintained.
+This module is in its infancy and it is very likely to change and (gasp) risk is high that it will go unmaintained.
 
 =head1 DOCUMENTATION
 
@@ -278,7 +278,9 @@ This distribution depends on the following external, non-core modules:
 
 =head1 BUGS AND LIMITATIONS
 
-There are no known bugs in this module (as it is too young). Please report problems to the author. Patches are welcome.
+There are no known bugs in this module (as it is too young). Testing is not complete; in particular, tests look mostly for the expected results and not for edge cases or plain incorrect input. 
+
+Please report problems to the author. Patches are welcome. Tests are welcome also.
 
 =head1 ACKNOWLEDGEMENTS
 
