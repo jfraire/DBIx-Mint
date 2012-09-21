@@ -157,6 +157,8 @@ sub _build_insert_into {
         my $self   = shift;
         my @copies;
         foreach my $record (@_) {
+            croak "insert_into methods take hash references as input (while using $class" . "::$method)"
+                unless ref $record eq 'HASH';
             while (my ($from_field, $to_field) = each %$conditions) {
                 croak $class . "::" . $method .": $from_field is not defined" 
                     if !defined $self->{$from_field};
