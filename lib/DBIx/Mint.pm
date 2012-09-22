@@ -50,7 +50,7 @@ This documentation refers to DBIx::Mint 0.01
 
 =head1 SYNOPSIS
 
-Imagine that you already have defined your classes along with your business logic in some modules. Your classes should use the role L<DBIx::Mint::Table> to get database access and modification super powers:
+Define your classes, which will play the role L<DBIx::Mint::Table>:
 
  package Bloodbowl::Team;
  use Moo;
@@ -111,7 +111,7 @@ And in your your scripts:
  
 To find the documentation you need to set the schema and data modification methods, look into L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>.
 
-Without a schema you can only fetch data. No fancy classes calling, either (although we can have blessed hash refs as results). No data modification methods are offered:
+Without a schema you can only fetch data. No data modification methods are offered. We have chainable methods for this:
   
  my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
  
@@ -121,7 +121,7 @@ Without a schema you can only fetch data. No fancy classes calling, either (alth
    ->inner_join( 'players', { 'teams.id' => 'team'  })
    ->all;
 
-See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use to retrieve data.
+See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use to retrieve data. Internally, relationships are declared in terms of ResultSet objects.
  
 =head1 DESCRIPTION
 
@@ -163,13 +163,13 @@ The documentation is split into four parts:
 
 =over
 
-=item * This general view. The class DBIx::Mint defines a singleton that simply holds the L<SQL::Abstract::More> object and the database handle. It implements transactions. The methods described in the next section are all defined in this module.
+=item * This general view, which documents the umbrella class DBIx::Mint. This class defines a singleton that simply holds the L<SQL::Abstract::More> object and the database handle and implements transactions. The following section describes the methods offered by this module.
 
 =item * L<DBIx::Mint::Schema> documents relationships and the mapping between classes and database tables. Look there to find out how to specify table names, primary keys and how to create associations between classes.
 
-=item * L<DBIx::Mint::Table>, which implements class and instance methods that modify or fetch data from a single table.
+=item * L<DBIx::Mint::Table> is a role that implements methods that modify or fetch data from a single table.
 
-=item * L<DBIx::Mint::ResultSet> is the API to fetch information from the database. Internally, associations are implemented using ResultSet objects.
+=item * L<DBIx::Mint::ResultSet> builds database queries using chainable methods. It does not know about the schema, so it can be used without one. Internally, associations are implemented using ResultSet objects.
 
 =back
 
@@ -210,7 +210,7 @@ This is simply a method that will return your L<DBIx::Mint::Schema> instance:
 
 =head2 do_transaction
 
-This method will take a code reference and execute it within a transaction block. In case the transaction fails (your code dies) it is rolled back and B<a warning is thrown>. In this case, L<do_transaction> will return C<undef>. If successful, the transaction will be commited and the method will return a true value.
+This method will take a code reference and execute it within a transaction block. In case the transaction fails (your code dies) it is rolled back and B<a warning is thrown>. In this case, L<do_transaction> will return C<undef>. If successful, the transaction will be commited and the method will return a true value. 
 
  $mint->do_transaction( $code_ref ) || die "Transaction failed!";
 
@@ -284,7 +284,7 @@ Please report problems to the author. Patches are welcome. Tests are welcome als
 
 =head1 ACKNOWLEDGEMENTS
 
-This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci. The benefits of that module over DBIx::Mint are that it does provide accessors and it does allow for record modifications without using a schema. The main benefits of this module over DBIx::Lite is that relationships are more flexible, and you are allowed to have more than one relationship between two tables.
+This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci. The benefits of that module over DBIx::Mint are that it does provide accessors and it does allow for record modifications without using a schema. The main benefits of this module over DBIx::Lite is that target classes can be based on Moo or have their own accessors. Relationships are more flexible, and you are allowed to have more than one relationship between two tables.
 
 =head1 AUTHOR
 

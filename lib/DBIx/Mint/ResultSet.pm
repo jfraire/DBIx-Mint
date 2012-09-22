@@ -65,13 +65,6 @@ sub order_by {
     push @{ $self->list_order_by }, @_;
 }
 
-sub page {
-    my ($self, $page) = @_;
-    $page = defined $page ? $page : 1;
-    return $self->set_limit ( $self->rows_per_page )
-         ->set_offset($self->rows_per_page * ( $page - 1 ));
-}
-
 sub set_limit {
     my ($self, $value) = @_;
     $self->limit($value);
@@ -80,6 +73,13 @@ sub set_limit {
 sub set_offset {
     my ($self, $value) = @_;
     $self->offset($value);
+}
+
+sub page {
+    my ($self, $page) = @_;
+    $page = defined $page ? $page : 1;
+    return $self->set_limit ( $self->rows_per_page )
+         ->set_offset($self->rows_per_page * ( $page - 1 ));
 }
 
 sub set_rows_per_page {
@@ -221,3 +221,139 @@ sub inflate {
 
 1;
 
+=head1 NAME
+
+DBIx::Mint::ResultSet - DBIx::Mint class to build database queries
+
+=head1 SYNOPSIS
+
+ # Create your ResultSet object:
+ my $rs = DBIx::Mint::ResultSet->new( table => 'teams' );
+ 
+ # Now, build your query:
+ $rs = $rs->select( 'name', 'slogan', 'logo' )->search({ group => 'A'});
+ 
+ # Join tables
+ $rs = DBIx::Mint::ResultSet
+          ->new( table => 'teams' )
+          ->inner_join('players', { id => 'teams'});
+ 
+ # Fetch data
+ $rs->set_target_class( 'Bloodbowl::Team' );
+ my @teams   = $rs->all;
+ my $team    = $rs->single;
+ 
+ $rs->as_iterator;
+ while (my $team = $rs->next) {
+     say $team->slogan;
+ }
+ 
+=head1 DESCRIPTION
+
+Objects of this class allow you to fetch information from the database. ResultSet objects do not know about the database schema, which means that you can use them without one and that you must use table names directly. 
+
+Query creation and join methods return a clone of the original ResultSet object. This makes them chaineable.
+
+Records can be returned as hash references or they can be inflated to the target class you set. You can get a single result, a list of all results or an iterator.
+
+=head1 METHODS
+
+=head2 QUERY CREATION METHODS
+
+=over
+
+=item select
+
+Takes a list of field names to fetch from the given table or join. This method can be called several times to add different fields.
+
+=item search
+
+Builds the 'where' part of the query. It takes a data structure defined per the syntax of L<SQL::Abstract>.
+
+=item order_by, set_limit, set_offset, group_by, having
+
+These methods simply feed the L<SQL::Abstract::More> select method with their respective clause.
+
+=item page, set_rows_per_page
+
+These methods simply specify limits and offsets suitable for pagination. You set the number of records that you want per page, and the page that you need to fetch from the database.
+
+=back
+
+=head2 JOINS
+
+L<DBIx::Mint::ResultSet> offers inner and left joins between tables. The syntax is quite simple:
+
+ $rs->new( table => 'coaches' )->inner_join( 'teams', { id => 'coach' });
+
+The above call would produce a join between the tables 'coaches' and 'teams' using the fields 'id' from coaches and 'coach' from teams.
+
+ $rs->new( table => 'coaches' )
+    ->inner_join( ['teams',   't'], { 'me.id'  => 't.coach' })
+    ->inner_join( ['players', 'p'], { 't.id'   => 'p.team'  });
+
+You can alias the table names. 'me' always refers to the starting table (coaches in the example above).
+
+Note that the first example does not include table aliases. In this case, the keys of the hash reference are fields of the starting table (coaches) and values of the hash reference refer to the table specified in the same call. This is valid for longer joins.
+
+=head2 FETCHING DATA
+
+To actually execute the query and fetch data you have a few methods:
+
+=over
+
+=item select_sql
+
+This method will simply return a SQL select statement and a list of values to bind:
+
+ my ($sql, @bind) = $rs->select_sql;
+ 
+=item set_taget_class
+
+While not precisely a fetching method, it does define the class to bless fetched records. It is called like this:
+
+ $rs = $rs->set_target_class('Bloodbowl::Coach');
+
+=item single
+
+This method will return a single record from your query. It sets LIMIT to 1 and calls finish on the DBI statement holder. It returns a blessed object if you have set a target class earlier.
+
+=item all
+
+Returns all the records that result from your query. The records will be inflated to the target class if it was set earlier.
+
+=item as_iterator
+
+This will add an iterator to the ResultSet object, over which you must call 'next' to fetch a record:
+
+ $rs->as_iterator;
+ while (my $record = $rs->next ) {
+     say $record->name;
+ }
+
+=back
+ 
+=head1 ACKNOWLEDGEMENTS
+
+This module is *heavily* based on L<DBIx::Lite>, by Alessandro Ranellucci.
+
+=head1 AUTHOR
+
+Julio Fraire, <julio.fraire@gmail.com>
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright (c) 2012, Julio Fraire. All rights reserved.
+
+=head1 LICENSE
+
+This module is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself. See L<perlartistic>.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+=cut
+ 
+ 
