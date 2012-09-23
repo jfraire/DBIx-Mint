@@ -221,6 +221,8 @@ sub inflate {
 
 1;
 
+=pod
+
 =head1 NAME
 
 DBIx::Mint::ResultSet - DBIx::Mint class to build database queries
@@ -332,6 +334,10 @@ This will add an iterator to the ResultSet object, over which you must call 'nex
  }
 
 =back
+
+=head1 SEE ALSO
+
+This module is part of L<DBIx::Mint>.
  
 =head1 ACKNOWLEDGEMENTS
 
