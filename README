@@ -1,22 +1,124 @@
-DBIx-Mint
-=========
+NAME
+       DBIx::Mint - Yet another light-weight ORM
 
-Yet another object-relational mapping module for Perl. Its goals are:
+VERSION
+       This documentation refers to DBIx::Mint 0.01
 
-* To provide flexible, chaineable methods to fetch data from a database
-* To provide a flexible, powerful way to build relationships between classes
-* It does not generate accessors, so you can use it on top of your existing classes
-* To be light on dependencies
+SYNOPSIS
+       Define your classes, which will play the role DBIx::Mint::Table:
 
-On the other side of the equation, it has some strong restrictions and drawbacks:
+        package Bloodbowl::Team;
+        use Moo;
+        with 'DBIx::Mint::Table';
 
-* It supports a single database handle
-* While it uses roles (through Role::Tiny), it does put a lot of methods on your namespace
-* It only uses DBI for the database connection and it makes no effort to keep it alive for long-running processes. You should take care of this in a persistent environment.
+        has id   => (is => 'rw' );
+        has name => (is => 'rw' );
+        ...
 
-There are many ORMs for Perl. Most notably, you should look at DBIx::Class and DBIx::DataModel. DBIx::Lite is a light-weight alternative to those two mature, enterprise-level ORMs.
+       Nearby (probably in a module of its own), you define the schema for
+       your classes:
+        package Bloodbowl::Schema;
 
-Note that this is a new distribution, and it is likely to change.
+        my $schema = DBIx::Mint->instance->schema;
+        $schema->add_class(
+            class      => 'Bloodbowl::Team',
+            table      => 'teams',
+            pk         => 'id',
+            auto_pk => 1,
+        );
+
+        $schema->add_class(
+            class      => 'Bloodbowl::Player',
+            table      => 'players',
+            pk         => 'id',
+            is_auto_pk => 1,
+        );
+
+        # This is a one-to-many relationship
+        $schema->one_to_many(
+            conditions     => 
+               ['Bloodbowl::Team', { id => 'team'}, 'Bloodbowl::Player'],
+            method         => 'get_players',
+            inverse_method => 'get_team',
+        );
+
+       And in your your scripts:
+
+        use DBIx::Mint;
+        use My::Schema;
+        use DBI;
+
+        # Connect to the database
+        my $dbh  = DBI->connect(...);
+        my $mint = DBIx::Mint->instance( dbh => $dbh );
+
+        my $team    = Bloodbowl::Team->find(1);
+        my @players = $team->get_players;
+
+        # Database modification methods include insert, update, and delete.
+        # They act on a single object when called as instance methods
+        # but over the whole table if called as class methods:
+        $team->name('Los Invencibles');
+        $team->update;
+        
+        Bloodbowl::Coach->update(
+           { status   => 'suspended' },
+           { password => 'blocked'   });
+
+       To find the documentation you need to set the schema and data
+       modification methods, look into DBIx::Mint::Schema and
+       DBIx::Mint::Table.
+
+       Without a schema you can only fetch data. No data modification methods
+       are offered. We have chainable methods for this:
+
+        my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
+
+        # Joins. This will retrieve all the players for coach #1
+        my @team_players = $rs->search( { 'me.id' => 1 } )
+          ->inner_join( 'teams',   { 'me.id'    => 'coach' })
+          ->inner_join( 'players', { 'teams.id' => 'team'  })
+          ->all;
+
+       See the docs for DBIx::Mint::ResultSet for all the methods you can use
+       to retrieve data. Internally, relationships are declared in terms of
+       ResultSet objects.
+
+DESCRIPTION
+       DBIx::Mint is yet another object-relational mapping module for Perl.
+       Its goals are:
+
+       ·   To be simple to understand and use
+
+       ·   To provide flexible, chaineable methods to fetch data from a
+           database
+
+       ·   To provide a flexible, powerful way to build relationships between
+           classes
+
+       ·   To play nice with your Moo classes (although we do treat your
+           objects as hash references under the hood)
+
+       ·   To be light on dependencies
+
+       On the other side of the equation, it has some strong restrictions:
+
+       ·   It supports a single database handle
+
+       ·   While it uses roles (through Role::Tiny/Moo::Role), it does put a
+           lot of methods on your namespace. See DBIx::Mint::Table for the
+           list. DBIx::Mint::ResultSet does not mess with your namespace at
+           all.
+
+       ·   It only uses DBI for the database connection and it makes no effort
+           to keep it alive for long-running processes.
+
+       There are many ORMs for Perl. Most notably, you should look at
+       DBIx::Class and DBIx::DataModel. DBIx::Lite is a light-weight
+       alternative to those two, enterprise-level ORMs.
+
+       This module is in its infancy and it is very likely to change and
+       (gasp) risk is high that it will go unmaintained.
 
 INSTALLATION
 
@@ -35,7 +137,6 @@ This module requires these other modules and libraries:
 * DBI
 * Moo
 * SQL::Abstract::More
-* Role::Tiny (a dependency of Moo, anyway)
 * MooX::Singleton
 * List::MoreUtils
 * Clone
