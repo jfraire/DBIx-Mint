@@ -127,19 +127,19 @@ isa_ok($rs, 'DBIx::Mint::ResultSet');
     is_deeply( \@bind, [10,20], 'Bound values are correct when paging');
 }
 {
-    my $newrs = $rs->set_limit(1);
+    my $newrs = $rs->limit(1);
     isa_ok($newrs, 'DBIx::Mint::ResultSet');
     my ($sql, @bind) = $newrs->select_sql;
     like( $sql, qr{LIMIT ?}, 
-        'set_limit results in correct SQL');
+        'limit results in correct SQL');
     is( $bind[0], 1, 'Bound values are correct for LIMIT clause');
 }
 {
-    my $newrs = $rs->set_limit(5)->set_offset(32);
+    my $newrs = $rs->limit(5)->offset(32);
     isa_ok($newrs, 'DBIx::Mint::ResultSet');
     my ($sql, @bind) = $newrs->select_sql;
     like( $sql, qr{OFFSET ?}, 
-        'set_offset results in correct SQL');
+        'offset results in correct SQL');
     is( $bind[1], 32, 'Bound values are correct for OFFSET clause');
 }
 {

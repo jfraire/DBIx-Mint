@@ -14,8 +14,8 @@ has where         => ( is => 'rw', default   => sub {[]});
 has joins         => ( is => 'rw', default   => sub {[]});
 
 has rows_per_page => ( is => 'rw', default   => sub {10} );
-has limit         => ( is => 'rw', predicate => 1 );
-has offset        => ( is => 'rw', predicate => 1 );
+has set_limit     => ( is => 'rw', predicate => 1 );
+has set_offset    => ( is => 'rw', predicate => 1 );
 
 has list_group_by => ( is => 'rw', default   => sub {[]});
 has list_having   => ( is => 'rw', default   => sub {[]});
@@ -24,7 +24,7 @@ has list_order_by => ( is => 'rw', default   => sub {[]});
 has iterator      => ( is => 'rw', predicate => 1, handles => ['next'] );
 
 around 'select', 'search', 'group_by', 'having', 'order_by', 'set_target_class', 
-    'set_limit', 'set_offset', 'set_rows_per_page', 'as_iterator' => sub {
+    'limit', 'offset', 'set_rows_per_page', 'as_iterator' => sub {
     my $orig = shift;
     my $self = shift;
     my $clone = $self->_clone;
@@ -65,21 +65,21 @@ sub order_by {
     push @{ $self->list_order_by }, @_;
 }
 
-sub set_limit {
+sub limit {
     my ($self, $value) = @_;
-    $self->limit($value);
+    $self->set_limit($value);
 }
 
-sub set_offset {
+sub offset {
     my ($self, $value) = @_;
-    $self->offset($value);
+    $self->set_offset($value);
 }
 
 sub page {
     my ($self, $page) = @_;
     $page = defined $page ? $page : 1;
-    return $self->set_limit ( $self->rows_per_page )
-         ->set_offset($self->rows_per_page * ( $page - 1 ));
+    return $self->limit( $self->rows_per_page )
+         ->offset($self->rows_per_page * ( $page - 1 ));
 }
 
 sub set_rows_per_page {
@@ -144,8 +144,8 @@ sub select_sql {
         -columns    => \@cols,
         -from       => [ -join => @joins ],
         -where      => [ -and  => $self->where ],
-        $self->has_limit           ? (-limit       => $self->limit)           : (),
-        $self->has_offset          ? (-offset      => $self->offset)          : (),
+        $self->has_set_limit       ? (-limit       => $self->set_limit)       : (),
+        $self->has_set_offset      ? (-offset      => $self->set_offset)      : (),
         @{$self->list_group_by}    ? (-group_by    => $self->list_group_by)   : (),
         @{$self->list_having}      ? (-having      => $self->list_having)     : (),
         @{$self->list_order_by}    ? (-order_by    => $self->list_order_by)   : (),
@@ -175,7 +175,7 @@ sub all {
 # Returns a single, inflated object
 sub single {
     my $self = shift;
-    my ($sth, @bind) = $self->set_limit(1)->select_sth;
+    my ($sth, @bind) = $self->limit(1)->select_sth;
     $sth->execute(@bind);
     my $single = $sth->fetchrow_hashref;
     $sth->finish;
@@ -272,7 +272,7 @@ Takes a list of field names to fetch from the given table or join. This method c
 
 Builds the 'where' part of the query. It takes a data structure defined per the syntax of L<SQL::Abstract>.
 
-=item order_by, set_limit, set_offset, group_by, having
+=item order_by, limit, offset, group_by, having
 
 These methods simply feed the L<SQL::Abstract::More> select method with their respective clause.
 
