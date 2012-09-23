@@ -32,7 +32,7 @@ sub insert {
     else {
         # Called as class method for a single object (not a ref)
         eval { $data = {@_} };
-        croak "Arguments to insert are not key, value pairs while trying to insert an object"
+        croak "Arguments to insert must be key, value pairs while trying to insert an object"
             if $@;
         $data  = _remove_fields($schema, { @_ });
     }

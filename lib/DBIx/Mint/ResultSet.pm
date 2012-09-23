@@ -4,7 +4,6 @@ use DBIx::Mint;
 use DBIx::Mint::ResultSet::Iterator;
 use List::MoreUtils qw(uniq);
 use Clone qw(clone);
-use Carp;
 use Moo;
 
 has table         => ( is => 'rw', required  => 1 );
@@ -155,7 +154,6 @@ sub select_sql {
 sub select_sth {
     my $self = shift;
     my $mint = DBIx::Mint->instance;
-    croak "The database handle has not been established" unless $mint->has_dbh;
     my ($sql, @bind) = $self->select_sql;
     return DBIx::Mint->instance->dbh->prepare($sql), @bind;
 }

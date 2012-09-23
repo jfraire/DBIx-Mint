@@ -16,6 +16,15 @@ has abstract => (
 );
 
 has dbh    => ( is => 'rw', predicate => 1 );
+before dbh => sub {
+    my ($self, $dbh) = @_;
+    croak "Please feed DBIx::Mint with a database connection"
+        unless $dbh || $self->has_dbh;
+};
+
+sub new {
+    croak "You should call DBIx::Mint->instance instead of new";
+}
 
 sub do_transaction {
     my ($self, $trans) = @_;

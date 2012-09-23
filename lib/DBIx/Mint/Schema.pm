@@ -10,6 +10,10 @@ with 'MooX::Singleton';
 has classes       => ( is => 'rw', default => sub {{}} );
 has tables        => ( is => 'rw', default => sub {{}} );
 
+sub new {
+    croak "You should call DBIx::Mint::Schema->instance instead of new";
+}
+
 sub add_class {
     my $self  = shift;
     my $class = DBIx::Mint::Schema::Class->new(@_);
