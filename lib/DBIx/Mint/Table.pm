@@ -276,9 +276,10 @@ This method deletes information from the corresponding table. Like insert and de
 
 =head2 find
 
-Fetches a single record from the database and blesses it into the calling class. It can be called as a class record only and its parameters are the values of the primary keys for the corresponding table:
+Fetches a single record from the database and blesses it into the calling class. It can be called as a class record only. It can as take as input either the values of the primary keys for the corresponding table or a hash reference with criteria to fetch a single record:
 
  my $coach_3 = Bloodbowl::Coach->find(3);
+ my $coach_3 = Bloodbowl::Coach->find({ name => 'coach 3'});
 
 =head2 find_or_create
 

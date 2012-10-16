@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 12;
+use Test::More tests => 21;
 use strict;
 use warnings;
 
@@ -42,7 +42,7 @@ SKIP: {
     my $dbh = Test::DB->init_db;
     $mint->dbh($dbh);
 
-    # Test failed transaction
+    # Test failed transaction with AutoCommit => 1 (the default for Test::DB)
     {
         my $transaction = sub {
             # This is the transaction
@@ -69,6 +69,35 @@ SKIP: {
         is   $coach->name, 'julio_f',  'Record was not changed by a rolled back transaction';
     }
 
+    # Test failed transaction with AutoCommit => 0
+    {
+        $mint->dbh->{AutoCommit} = 0;
+        my $transaction = sub {
+            # This is the transaction
+            my $coach = Bloodbowl::Coach->find(1);
+            $coach->name('user x');
+            $coach->update;
+            
+            my $test = Bloodbowl::Coach->find(1);
+            is($test->name, 'user x',  'Record updated within transaction');
+            
+            die "Abort transaction";
+        };
+
+        my $res;
+        &Test::Warn::warning_is(
+            sub { $res = $mint->do_transaction( $transaction ) },
+            "Transaction failed: Abort transaction",
+            'Failed transactions emit a warning (with AutoCommit initially off)');
+            
+        is $res, undef, 'Failed transactions return undef (AutoCommit off)';
+
+        my $coach = Bloodbowl::Coach->find(1);
+        isnt $coach->name, 'user x',   'Failed transactions are rolled back successfuly';
+        is   $coach->name, 'julio_f',  'Record was not changed by a rolled back transaction';
+        $dbh->{AutoCommit} = 1;
+    }
+
     # Test commited transaction
     {
         my $transaction = sub {
@@ -91,6 +120,31 @@ SKIP: {
 
         my $coach = Bloodbowl::Coach->find(1);
         is $coach->name, 'user x',   'Successful transactions are commited';
+    }
+
+    # Test commited transaction (AutoCommit = 0)
+    {
+        $mint->dbh->{AutoCommit} = 0;
+        my $transaction = sub {
+            # This is the transaction
+            my $coach = Bloodbowl::Coach->find(1);
+            $coach->name('user y');
+            $coach->update;
+            
+            my $test = Bloodbowl::Coach->find(1);
+            is($test->name, 'user y',  'Record updated within transaction (AutoCommit off)');
+        };
+
+        my $res;
+        &Test::Warn::warning_is(
+            sub { $res = $mint->do_transaction( $transaction ) },
+            undef,
+            'Successful transactions do not emit warnings (AutoCommit off)');
+            
+        is $res, 1, 'Successful transactions return the one true value (AutoCommit off)';
+
+        my $coach = Bloodbowl::Coach->find(1);
+        is $coach->name, 'user y',   'Successful transactions are commited (AutoCommit off)';
     }
 
     $dbh->disconnect;

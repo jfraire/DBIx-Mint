@@ -163,7 +163,7 @@ On the other side of the equation, it has some strong restrictions:
 
 =back
 
-There are many ORMs for Perl. Most notably, you should look at L<DBIx::Class> and L<DBIx::DataModel>. L<DBIx::Lite> is a light-weight alternative to those two, enterprise-level ORMs.
+There are many ORMs for Perl. Most notably, you should look at L<DBIx::Class> and L<DBIx::DataModel>. L<DBIx::Lite> is a light-weight alternative to those two, roboust and proven ORMs.
 
 This module is in its infancy and it is very likely to change and (gasp) risk is high that it will go unmaintained.
 
@@ -252,7 +252,7 @@ Please report problems to the author. Patches are welcome. Tests are welcome als
 
 =head1 ACKNOWLEDGEMENTS
 
-This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci. The benefits of that module over DBIx::Mint are that it does provide accessors and it does allow for record modifications without using a schema. The main benefits of this module over DBIx::Lite is that target classes can be based on Moo or have their own accessors. Relationships are more flexible, and you are allowed to have more than one relationship between two tables.
+This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci. The benefits of that module over DBIx::Mint are that it does provide accessors if you choose to bless your result objects and it does allow for record modifications without using a schema. The main benefits of this module over DBIx::Lite is that target classes can be based on Moo or have their own accessors defined elsewhere, which avoids clashing. Relationships are more flexible, and you are allowed to have more than one relationship between two tables.
 
 =head1 AUTHOR
 

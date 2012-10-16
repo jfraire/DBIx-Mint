@@ -22,5 +22,4 @@ t/065-Schema.t
 t/070-one-to-many.t
 t/075-many-to-many.t
 t/Test/DB.pm
-t/test_database.sql
-temp_pod.pod
+

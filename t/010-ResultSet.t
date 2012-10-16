@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 44;
+use Test::More tests => 48;
 use strict;
 use warnings;
 
@@ -125,6 +125,14 @@ isa_ok($rs, 'DBIx::Mint::ResultSet');
     like( $sql, qr{LIMIT ?},    'Paging sets LIMIT correctly');
     like( $sql, qr{OFFSET ?},   'Paging sets OFFSET correctly');
     is_deeply( \@bind, [10,20], 'Bound values are correct when paging');
+}
+{
+    my $newrs = $rs->page();   # Returns page 1
+    isa_ok($newrs, 'DBIx::Mint::ResultSet');
+    my ($sql, @bind) = $newrs->select_sql;
+    like( $sql, qr{LIMIT ?},    'Paging sets LIMIT correctly');
+    like( $sql, qr{OFFSET ?},   'Paging sets OFFSET correctly');
+    is_deeply( \@bind, [10, 0], 'Bound values are correct when paging (with undefined page number)');
 }
 {
     my $newrs = $rs->limit(1);

@@ -143,11 +143,11 @@ sub select_sql {
         -columns    => \@cols,
         -from       => [ -join => @joins ],
         -where      => [ -and  => $self->where ],
-        $self->has_set_limit       ? (-limit       => $self->set_limit)       : (),
-        $self->has_set_offset      ? (-offset      => $self->set_offset)      : (),
-        @{$self->list_group_by}    ? (-group_by    => $self->list_group_by)   : (),
-        @{$self->list_having}      ? (-having      => $self->list_having)     : (),
-        @{$self->list_order_by}    ? (-order_by    => $self->list_order_by)   : (),
+        $self->has_set_limit       ? (-limit       => $self->set_limit      ) : (),
+        $self->has_set_offset      ? (-offset      => $self->set_offset     ) : (),
+        @{$self->list_group_by}    ? (-group_by    => $self->list_group_by  ) : (),
+        @{$self->list_having}      ? (-having      => $self->list_having    ) : (),
+        @{$self->list_order_by}    ? (-order_by    => $self->list_order_by  ) : (),
     );
 }
 
