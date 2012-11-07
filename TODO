@@ -1,0 +1,5 @@
+DBIx::Mint TODO:
+
+- Add DBIx::Connector
+- Add hook to execute SQL statements when the database connection is first fed into DBIx::Mint
+- Add from_db, to_db hooks
