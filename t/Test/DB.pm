@@ -1,21 +1,41 @@
 package Test::DB;
 
+use DBIx::Mint;
 use DBI;
 use v5.10;
 
-sub init_db {
+sub connection_params{
+    return ( 'dbi:SQLite:dbname=t/bloodbowl.db', '', '',
+        { AutoCommit => 1, RaiseError => 1 });
+}
+
+sub remove_db {
     if (-e 't/bloodbowl.db') {
         unlink 't/bloodbowl.db';
     }
+}
 
-    my $dbh  = DBI->connect('dbi:SQLite:dbname=t/bloodbowl.db', '', '',
-        { AutoCommit => 1, RaiseError => 1 });
+sub init {
+    my $dbh = shift;
     local $/ = ';';
     while (<DATA>) {
         next unless $_;
         s/^\s+|\s+$//g;
         $dbh->do($_);
     }
+}
+
+sub init_db {
+    remove_db();
+    my $dbh  = DBI->connect( connection_params() );
+    init($dbh);
+    return $dbh;
+}
+
+sub connect_db {
+    remove_db();
+    my $dbh = DBIx::Mint->instance->connect( connection_params() );
+    init($dbh);
     return $dbh;
 }
 
