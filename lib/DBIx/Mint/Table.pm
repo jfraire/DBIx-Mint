@@ -241,6 +241,8 @@ This role allows your class to interact with a database table. It allows for rec
 
 Database modification methods can be called as instance or class methods. In the first case, they act only on the calling object. When called as class methods they allow for the modification of several records.
 
+Triggers can be added using the methods before, after, and around from L<Class::Method::Modifiers>. 
+
 =head1 METHODS
 
 =head2 insert
@@ -295,7 +297,7 @@ Julio Fraire, <julio.fraire@gmail.com>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2012, Julio Fraire. All rights reserved.
+Copyright (c) 2013, Julio Fraire. All rights reserved.
 
 =head1 LICENSE
 

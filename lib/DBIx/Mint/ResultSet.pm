@@ -339,7 +339,7 @@ This module is part of L<DBIx::Mint>.
  
 =head1 ACKNOWLEDGEMENTS
 
-This module is *heavily* based on L<DBIx::Lite>, by Alessandro Ranellucci.
+This module is heavily based on L<DBIx::Lite>, by Alessandro Ranellucci.
 
 =head1 AUTHOR
 
@@ -347,7 +347,7 @@ Julio Fraire, <julio.fraire@gmail.com>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2012, Julio Fraire. All rights reserved.
+Copyright (c) 2013, Julio Fraire. All rights reserved.
 
 =head1 LICENSE
 

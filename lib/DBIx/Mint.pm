@@ -260,7 +260,7 @@ Julio Fraire, <julio.fraire@gmail.com>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2012, Julio Fraire. All rights reserved.
+Copyright (c) 2013, Julio Fraire. All rights reserved.
 
 =head1 LICENSE
 
