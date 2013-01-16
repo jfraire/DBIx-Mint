@@ -14,6 +14,10 @@ WriteMakefile(
         'List::MoreUtils'     =>   0,
         'Clone'               =>   0,
     },
+    BUILD_REQUIRES   => {
+        'DBD::SQLite'         =>   0,
+        'Test::Warn'          =>   0,
+    },
     ABSTRACT_FROM  => 'lib/DBIx/Mint.pm',
     AUTHOR         => 'Julio Fraire <julio.fraire@gmail.com>',
     LICENSE        => 'perl',
