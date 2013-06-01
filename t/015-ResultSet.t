@@ -14,9 +14,8 @@ BEGIN {
 
 # Tests for ResultSet data fetching methods
 
-my $dbh  = Test::DB->init_db;
-my $mint = DBIx::Mint->instance( dbh => $dbh );
-isa_ok( $mint, 'DBIx::Mint');
+Test::DB->connect_db;
+isa_ok( DBIx::Mint->instance, 'DBIx::Mint');
 
 my $coaches_rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
 isa_ok( $coaches_rs, 'DBIx::Mint::ResultSet' );
