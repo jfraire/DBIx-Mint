@@ -131,7 +131,7 @@ sub delete {
 
 # Returns a single, inflated object using its primary keys
 sub find {
-    my $class   = shift;
+    my $class = shift;
     croak "find must be called as a class method" if ref $class;
     
     my $schema = DBIx::Mint::Schema->instance->for_class($class);
@@ -149,6 +149,7 @@ sub find {
 
     my $table  = $schema->table;    
     my ($sql, @bind) = DBIx::Mint->instance->abstract->select($table, '*', $data);
+    
     # Execute the SQL
     my $conn = DBIx::Mint->instance->connector;
     my $res = $conn->run( fixup => sub { $_->selectall_arrayref($sql, {Slice => {}}, @bind) } );
@@ -159,7 +160,7 @@ sub find {
 
 sub find_or_create {
     my $class = shift;
-    my $obj   = $class->find(@_);
+    my $obj = $class->find(@_);
     $obj = $class->create(@_) if ! defined $obj;
     return $obj;
 }
