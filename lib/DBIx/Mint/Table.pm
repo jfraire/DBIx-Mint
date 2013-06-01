@@ -232,7 +232,7 @@ Database modification methods can be called as instance or class methods. In the
 
 =head2 insert
 
-When called as a class method, it takes a list of hash references and inserts them into the table which corresponds to the calling class. The hash references must have the same keys to benefit from a prepared statement holder.
+When called as a class method, it takes a list of hash references and inserts them into the table which corresponds to the calling class. The hash references must have the same keys to benefit from a prepared statement holder. The list of fields is taken from the first record. If only one record is used, it can be simply a list of key-value pairs.
 
 When called as an instance method, it inserts the data contained within the object into the database.
 
