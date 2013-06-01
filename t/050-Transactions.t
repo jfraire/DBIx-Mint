@@ -27,9 +27,10 @@ SKIP: {
         has password     => ( is => 'rw' );
     }
 
-    my $mint   = DBIx::Mint->instance;
+	my $mint = Test::DB->connect_db;
+	isa_ok( $mint, 'DBIx::Mint');
+
     my $schema = $mint->schema;
-    isa_ok( $mint,   'DBIx::Mint');
     isa_ok( $schema, 'DBIx::Mint::Schema');
 
     $schema->add_class(
@@ -39,8 +40,6 @@ SKIP: {
         auto_pk  => 1
     );
 
-    my $dbh = Test::DB->init_db;
-    $mint->dbh($dbh);
 
     # Test failed transaction with AutoCommit => 1 (the default for Test::DB)
     {
@@ -95,7 +94,7 @@ SKIP: {
         my $coach = Bloodbowl::Coach->find(1);
         isnt $coach->name, 'user x',   'Failed transactions are rolled back successfuly';
         is   $coach->name, 'julio_f',  'Record was not changed by a rolled back transaction';
-        $dbh->{AutoCommit} = 1;
+        $mint->dbh->{AutoCommit} = 1;
     }
 
     # Test commited transaction
@@ -146,8 +145,6 @@ SKIP: {
         my $coach = Bloodbowl::Coach->find(1);
         is $coach->name, 'user y',   'Successful transactions are commited (AutoCommit off)';
     }
-
-    $dbh->disconnect;
 }
 
 done_testing();
