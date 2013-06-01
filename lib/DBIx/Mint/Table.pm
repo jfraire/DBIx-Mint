@@ -12,8 +12,8 @@ sub create {
     return $obj;
 }
 
-# There are two options for insert: Instance method for an existing object or
-# class method for multiple objects.
+# There are three options for insert: Instance method for an existing object,
+# class method for multiple objects, or class method for a new record in key-value pairs.
 # It returns the id(s) of the inserted object(s)
 sub insert {
     my $proto = shift;
@@ -97,11 +97,12 @@ sub update {
     }
     
     # Execute the SQL
-    return DBIx::Mint->instance->dbh->do($sql, undef, @bind);
+    my $conn = DBIx::Mint->instance->connector;
+    return $conn->run( fixup => sub { $_->do($sql, undef, @bind) } );
 }
 
 sub delete {
-    my $proto = $_[0];
+    my $proto = shift;
     my $class = ref $proto ? ref $proto : $proto;
     my $schema = DBIx::Mint::Schema->instance->for_class($class)
         || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
@@ -116,13 +117,14 @@ sub delete {
     }
     else {
         # Deleting at class level
-        ($sql, @bind) = DBIx::Mint->instance->abstract->delete($schema->table, $_[1]);
+        ($sql, @bind) = DBIx::Mint->instance->abstract->delete($schema->table, $_[0]);
     }
     
     # Execute the SQL
-    my $res = DBIx::Mint->instance->dbh->do($sql, undef, @bind);
+    my $conn = DBIx::Mint->instance->connector;
+    my $res = $conn->run( fixup => sub { $_->do($sql, undef, @bind) } );
     if (ref $proto && $res) {
-        delete $proto->{$_} foreach (keys %$proto);
+        %$proto = ();
     }
     return $res;
 }
@@ -147,7 +149,9 @@ sub find {
 
     my $table  = $schema->table;    
     my ($sql, @bind) = DBIx::Mint->instance->abstract->select($table, '*', $data);
-    my $res = DBIx::Mint->instance->dbh->selectall_arrayref($sql, {Slice => {}}, @bind);
+    # Execute the SQL
+    my $conn = DBIx::Mint->instance->connector;
+    my $res = $conn->run( fixup => sub { $_->selectall_arrayref($sql, {Slice => {}}, @bind) } );
     
     return undef unless defined $res->[0];
     return bless $res->[0], $class;    
@@ -165,23 +169,6 @@ sub result_set {
     my $schema = DBIx::Mint::Schema->instance->for_class($class);
     croak "result_set: The schema for $class is undefined" unless defined $schema;
     return DBIx::Mint::ResultSet->new( table => $schema->table );
-}
-
-# Returns a copy of the received record, without the fields that are not in the database
-sub _remove_fields {
-    my ($schema, $record) = @_;
-    my %data = %$record;
-    delete $data{$_} foreach @{ $schema->fields_not_in_db };
-    return \%data;
-}
-
-# Sorts and quotes the keys of the received record
-sub _sort_and_quote_hash {
-    my $hash_ref = shift;
-    my @sorted_keys   = sort keys %$hash_ref;
-    my @quoted_keys   = map { DBIx::Mint->instance->dbh->quote_identifier( $_ ) } @sorted_keys;
-    my @sorted_values =  @{$hash_ref}{@sorted_keys};
-    return \@quoted_keys, \@sorted_values;
 }
 
 1;
