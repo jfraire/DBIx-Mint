@@ -26,12 +26,12 @@ around dbh => sub {
 };
 
 sub connect {
-    my $self = shift;
-        
+    my $class = shift;
+    my $self  = $class->instance;        
     $self->connector( DBIx::Connector->new(@_) );
     $self->connector->mode('ping');
-#    $self->dbh->{HandleError} = sub { croak $_[0] };
-    return $self->connector->dbh;
+    $self->dbh->{HandleError} = sub { croak $_[0] };
+    return $self;
 }
 
 sub do_transaction {

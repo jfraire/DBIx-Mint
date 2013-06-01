@@ -34,9 +34,9 @@ sub init_db {
 
 sub connect_db {
     remove_db();
-    my $dbh = DBIx::Mint->instance->connect( connection_params() );
-    init($dbh);
-    return $dbh;
+    my $mint = DBIx::Mint->connect( connection_params() );
+    init($mint->dbh);
+    return $mint;
 }
 
 1;

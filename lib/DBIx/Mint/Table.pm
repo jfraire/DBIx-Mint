@@ -12,71 +12,68 @@ sub create {
     return $obj;
 }
 
+# There are two options for insert: Instance method for an existing object or
+# class method for multiple objects.
+# It returns the id(s) of the inserted object(s)
 sub insert {
     my $proto = shift;
     my $class = ref $proto ? ref $proto : $proto;
     my $schema = DBIx::Mint::Schema->instance->for_class($class)
         || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
-    my $prim_key = $schema->pk->[0];
-    
-    # Build SQL insert statement
-    my $data;
-    if (!@_) {
-        # Inserting an object
-        $data = _remove_fields($schema, $proto);
-    }
-    elsif (ref $_[0]) {
-        # Inserting a set of objects
-        $data = _remove_fields($schema, $_[0]);
-    }
-    else {
-        # Called as class method for a single object (not a ref)
-        eval { $data = {@_} };
-        croak "Arguments to insert must be key, value pairs while trying to insert an object"
-            if $@;
-        $data  = _remove_fields($schema, { @_ });
-    }
-    my ($fields, $values) = _sort_and_quote_hash($data);
-    
 
-    my $sql = sprintf 'INSERT INTO %s (%s) VALUES (%s)',
-        $schema->table, join(', ', @$fields), join(', ',('?')x@$values);
-   
-    # Get sth
-    my $dbh = DBIx::Mint->instance->dbh;
-    my $sth = $dbh->prepare($sql);
+	# Fields that do not go into the database
+	my %to_be_removed;
+	@to_be_removed{ @{ $schema->fields_not_in_db } } = (1) x @{ $schema->fields_not_in_db };
     
-    # Execute
-    my @ids;
-    if (ref $_[0]) {
-        # Inserting a set of objects
-        while (my $obj = shift @_) {
-            my $copy = _remove_fields($schema, $obj);
-            my ($obj_fields, $obj_values) = _sort_and_quote_hash($copy);
-            croak "Insert failed: All objects must have the same fields"
-                unless @$obj_fields ~~ @$fields;
-            $sth->execute(@$obj_values);
-            if ($schema->auto_pk) {
-                my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);
-                $obj->{$prim_key} = $id;
-            }
-            push @ids, @$obj{ @{ $schema->pk } }; 
-        }
+    my @fields;
+    my @objects;
+    
+    if (ref $proto) {
+        # Inserting a single, already created object        
+        @fields = grep {!exists $to_be_removed{$_}} keys %$proto;
+        @objects = ($proto);
     }
+    elsif (!ref $proto && ref $_[0]) {
+		# Inserting a set of objects
+		@fields = grep { !exists $to_be_removed{$_} } keys %{$_[0]};
+		@objects = @_;
+	}
+	elsif (!ref $proto && @_) {
+		# Inserting a single object, from key-value pairs
+		my %hash;
+		eval { %hash = @_ };
+		croak "Problem inserting object: $@" if $@;
+		@fields = grep { !exists $to_be_removed{$_} } keys %hash;
+		@objects = ( \%hash );
+	}
     else {
-        # Inserting a single object
-        $sth->execute(@$values);
-        if ($schema->auto_pk) {
-            my $id = $dbh->last_insert_id(undef, undef, $schema->table, $prim_key);
-            $proto->{$prim_key} = $id if ref $proto;
-            push @ids, $id;
-        }
-        else {
-            push @ids, @$data{ @{ $schema->pk } };
-        }
-    }
-    return wantarray ? @ids : $ids[0];
+		croak "Unrecognized calling of DBIx::Class::Table->insert";
+	} 
+    
+    my @quoted = map { DBIx::Mint->instance->dbh->quote_identifier( $_ ) } @fields;
+    my $sql = sprintf 'INSERT INTO %s (%s) VALUES (%s)',
+        $schema->table, join(', ', @quoted), join(', ', ('?') x @fields);
+
+	my $sub = sub {
+		my $sth = $_->prepare($sql);
+		my @ids;
+		foreach my $obj (@objects) {
+			# Obtain values from the object
+			my @values = @$obj{ @fields };
+			$sth->execute(@values);
+			if ($schema->auto_pk) {
+				my $id = $_->last_insert_id(undef, undef, $schema->table, undef);
+				$obj->{ $schema->pk->[0] } = $id;
+			}
+			push @ids, [ @$obj{ @{ $schema->pk } } ]; 
+		}
+		return @ids
+	};
+	my $conn = DBIx::Mint->instance->connector;
+	my @ids = $conn->run( fixup => $sub );
+    return wantarray ? @ids : $ids[0][0];
 }
+
 
 sub update {
     my $proto = shift;
@@ -170,6 +167,7 @@ sub result_set {
     return DBIx::Mint::ResultSet->new( table => $schema->table );
 }
 
+# Returns a copy of the received record, without the fields that are not in the database
 sub _remove_fields {
     my ($schema, $record) = @_;
     my %data = %$record;
@@ -177,6 +175,7 @@ sub _remove_fields {
     return \%data;
 }
 
+# Sorts and quotes the keys of the received record
 sub _sort_and_quote_hash {
     my $hash_ref = shift;
     my @sorted_keys   = sort keys %$hash_ref;
