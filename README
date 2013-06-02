@@ -1,158 +1,227 @@
 NAME
-       DBIx::Mint - Yet another light-weight ORM for Perl
+    DBIx::Mint - A light-weight ORM for Perl
 
 VERSION
-       This documentation refers to DBIx::Mint 0.01
+    This documentation refers to DBIx::Mint 0.02
 
 SYNOPSIS
-       Define your classes, which will play the role DBIx::Mint::Table:
+    Define your classes, which will play the role DBIx::Mint::Table:
 
-        package Bloodbowl::Team;
-        use Moo;
-        with 'DBIx::Mint::Table';
+     package Bloodbowl::Team;
+     use Moo;
+     with 'DBIx::Mint::Table';
+ 
+     has id   => (is => 'rw' );
+     has name => (is => 'rw' );
+     ...
 
-        has id   => (is => 'rw' );
-        has name => (is => 'rw' );
-        ...
+    Nearby (probably in a module of its own), you define the schema for your
+    classes:
 
-       Nearby (probably in a module of its own), you define the schema for
-       your classes:
-        package Bloodbowl::Schema;
+     package Bloodbowl::Schema;
 
-        my $schema = DBIx::Mint->instance->schema;
-        $schema->add_class(
-            class      => 'Bloodbowl::Team',
-            table      => 'teams',
-            pk         => 'id',
-            auto_pk => 1,
-        );
+     my $schema = DBIx::Mint->instance->schema;
+     $schema->add_class(
+         class      => 'Bloodbowl::Team',
+         table      => 'teams',
+         pk         => 'id',
+         auto_pk    => 1,
+     );
+ 
+     $schema->add_class(
+         class      => 'Bloodbowl::Player',
+         table      => 'players',
+         pk         => 'id',
+         auto_pk    => 1,
+     );
+ 
+     # This is a one-to-many relationship
+     $schema->one_to_many(
+         conditions     => 
+            ['Bloodbowl::Team', { id => 'team'}, 'Bloodbowl::Player'],
+         method         => 'get_players',
+         inverse_method => 'get_team',
+     );
 
-        $schema->add_class(
-            class      => 'Bloodbowl::Player',
-            table      => 'players',
-            pk         => 'id',
-            is_auto_pk => 1,
-        );
+    And in your your scripts:
 
-        # This is a one-to-many relationship
-        $schema->one_to_many(
-            conditions     => 
-               ['Bloodbowl::Team', { id => 'team'}, 'Bloodbowl::Player'],
-            method         => 'get_players',
-            inverse_method => 'get_team',
-        );
+     use DBIx::Mint;
+     use My::Schema;
+ 
+     # Connect to the database
+     DBIx::Mint->connect( $dsn, $user, $passwd, { dbi => 'options'} );
+ 
+     my $team    = Bloodbowl::Team->find(1);
+     my @players = $team->get_players;
+ 
+     # Database modification methods include insert, update, and delete.
+     # They act on a single object when called as instance methods
+     # but over the whole table if called as class methods:
+     $team->name('Los Invencibles');
+     $team->update;
+ 
+     Bloodbowl::Coach->update(
+        { status => 'suspended' }, 
+        { password => 'blocked' });
 
-       And in your your scripts:
+    To define a schema and to learn about data modification methods, look
+    into DBIx::Mint::Schema and DBIx::Mint::Table. Declaring the schema
+    allows you to modify the data.
 
-        use DBIx::Mint;
-        use My::Schema;
-        use DBI;
+    If you only need to query the database, no schema is needed. ResultSet
+    objects build database queries and fetch the resulting records:
 
-        # Connect to the database
-        my $dbh  = DBI->connect(...);
-        my $mint = DBIx::Mint->instance( dbh => $dbh );
+     my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
+ 
+     # You can perform joins:
+     my @team_players = $rs->search( { 'me.id' => 1 } )
+       ->inner_join( 'teams',   { 'me.id'    => 'coach' })
+       ->inner_join( 'players', { 'teams.id' => 'team'  })
+       ->all;
 
-        my $team    = Bloodbowl::Team->find(1);
-        my @players = $team->get_players;
-
-        # Database modification methods include insert, update, and delete.
-        # They act on a single object when called as instance methods
-        # but over the whole table if called as class methods:
-        $team->name('Los Invencibles');
-        $team->update;
-        
-        Bloodbowl::Coach->update(
-           { status   => 'suspended' },
-           { password => 'blocked'   });
-
-       To find the documentation you need to set the schema and data
-       modification methods, look into DBIx::Mint::Schema and
-       DBIx::Mint::Table.
-
-       Without a schema you can only fetch data. No data modification methods
-       are offered. We have chainable methods for this:
-
-        my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
-
-        # Joins. This will retrieve all the players for coach #1
-        my @team_players = $rs->search( { 'me.id' => 1 } )
-          ->inner_join( 'teams',   { 'me.id'    => 'coach' })
-          ->inner_join( 'players', { 'teams.id' => 'team'  })
-          ->all;
-
-       See the docs for DBIx::Mint::ResultSet for all the methods you can use
-       to retrieve data. Internally, relationships are declared in terms of
-       ResultSet objects.
+    See the docs for DBIx::Mint::ResultSet for all the methods you can use
+    to retrieve data.
 
 DESCRIPTION
-       DBIx::Mint is yet another object-relational mapping module for Perl.
-       Its goals are:
+    DBIx::Mint is an object-relational mapping module for Perl. Its goals
+    are:
 
-       ·   To be simple to understand and use
+    *   To be simple to understand and use
 
-       ·   To provide flexible, chaineable methods to fetch data from a
-           database
+    *   To provide flexible, chaineable methods to fetch data from a
+        database
 
-       ·   To provide a flexible, powerful way to build relationships between
-           classes
+    *   To provide a flexible, powerful way to build relationships between
+        classes
 
-       ·   To play nice with your Moo classes (although we do treat your
-           objects as hash references under the hood)
+    *   To play nice with your own classes. In particular, DBIx::Mint is
+        build using Moo and it does not clash with accessors defined in your
+        classes by Moo (although we do treat your objects as hash references
+        under the hood)
 
-       ·   To be light on dependencies
+    *   To be light on dependencies
 
-       On the other side of the equation, it has some strong restrictions:
+    On the other side of the equation, it has some strong restrictions:
 
-       ·   It supports a single database handle
+    *   It supports a single database handle and a single database schema.
+        It uses a Moo::Singleton to keep everything together.
 
-       ·   While it uses roles (through Role::Tiny/Moo::Role), it does put a
-           lot of methods on your namespace. See DBIx::Mint::Table for the
-           list. DBIx::Mint::ResultSet does not mess with your namespace at
-           all.
+    *   While it uses roles (through Role::Tiny/Moo::Role), it does put a
+        lot of methods on your namespace. See DBIx::Mint::Table for the
+        list. DBIx::Mint::ResultSet does not mess with your namespace at
+        all.
 
-       ·   It only uses DBI for the database connection and it makes no effort
-           to keep it alive for long-running processes.
+    There are many ORMs for Perl. Most notably, you should look at
+    DBIx::Class and DBIx::DataModel. DBIx::Lite is a light-weight
+    alternative to those two, roboust and proven ORMs.
 
-       There are many ORMs for Perl. Most notably, you should look at
-       DBIx::Class and DBIx::DataModel. DBIx::Lite is a light-weight
-       alternative to those two, enterprise-level ORMs.
+    This module is in its infancy and it is very likely to change and (gasp)
+    risk is high that it will go unmaintained.
 
-       This module is in its infancy and it is very likely to change and
-       (gasp) risk is high that it will go unmaintained.
+DOCUMENTATION
+    The documentation is split into four parts:
 
-INSTALLATION
+    *   This general view, which documents the umbrella class DBIx::Mint.
+        This class defines a singleton that simply holds the
+        SQL::Abstract::More object and the database connection and
+        implements transactions.
 
-To install this module type the following:
+    *   DBIx::Mint::Schema documents relationships and the mapping between
+        classes and database tables. Learn how to specify table names,
+        primary keys and how to create associations between classes.
 
-   perl Makefile.PL
-   make
-   make test
-   make install
+    *   DBIx::Mint::Table is a role that implements methods that modify or
+        fetch data from a single table.
+
+    *   DBIx::Mint::ResultSet builds database queries using chainable
+        methods. It does not know about the schema, so it can be used
+        without one. Internally, associations are implemented using
+        ResultSet objects.
+
+SUBROUTINES/METHODS IMPLEMENTED BY DBIx::Mint
+    This module offers a just a few starting methods:
+
+  instance
+    Returns an instance of DBIx::Mint. It is a singleton, so you can access
+    it from anywhere and it will be the same. To make it useful you should
+    tell it how to connect to the database.
+
+  connect
+    This is a class method that receives your database connection
+    instructions and instantiates the DBIx::Connector object:
+
+     DBIx::Mint->connect('dbi:SQLite:dbname=t/bloodbowl.db', '', '',
+            { AutoCommit => 1, RaiseError => 1 });
+
+    The database connection will be available while the singleton is alive.
+
+  connector
+    This accessor will return the underlying DBIx::Connector object.
+
+  dbh
+    This method will simply return the database handle from DBIx::Connector,
+    which is guaranteed to be alive.
+
+  abstract
+    This is the accessor/mutator for the SQL::Abstract::More subjacent
+    object. You can choose to build your own object with the parameters you
+    need and then simply stuff it into your DBIx::Mint instance:
+
+     my $sql = SQL::Abstract::More->new(...);
+     $mint->abstract($sql);
+
+    You can also use the default object, which is created with the defaults
+    of SQL::Abstract::More.
+
+  schema
+    This is simply a method that will return your DBIx::Mint::Schema
+    instance:
+
+     my $schema = $mint->schema;
+
+  do_transaction
+    This method will take a code reference and execute it within a
+    transaction block. In case the transaction fails (your code dies) it is
+    rolled back and a warning is thrown. In this case, do_transaction will
+    return "undef". If successful, the transaction will be commited and the
+    method will return a true value.
+
+     $mint->do_transaction( $code_ref ) || die "Transaction failed!";
 
 DEPENDENCIES
+    This distribution depends on the following external, non-core modules:
 
-This module requires these other modules and libraries:
+    Moo
+    MooX::Singleton
+    SQL::Abstract::More
+    DBI
+    DBIx::Connector
+    List::MoreUtils
+    Clone
 
-* Perl version 5.10 or higher (to use given/when constructs and smart matching for array comparisons)
-* DBI
-* Moo
-* SQL::Abstract::More
-* MooX::Singleton
-* List::MoreUtils
-* Clone
+BUGS AND LIMITATIONS
+    There are no known bugs in this module (as it is too young). Testing is
+    not complete; in particular, tests look mostly for the expected results
+    and not for edge cases or plain incorrect input.
 
-For testing, the following non-core modules are also used. These are not required:
+    Please report problems to the author. Patches are welcome. Tests are
+    welcome also.
 
-* Test::Warn
-* DBD::SQLite
+ACKNOWLEDGEMENTS
+    The ResultSet class was inspired by DBIx::Lite, by Alessandro
+    Ranellucci.
 
+AUTHOR
+    Julio Fraire, <julio.fraire@gmail.com>
 
-COPYRIGHT AND LICENCE
+LICENCE AND COPYRIGHT
+    Copyright (c) 2013, Julio Fraire. All rights reserved.
 
-Copyright (C) 2013 by Julio Fraire
+LICENSE
+    This module is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself. See perlartistic.
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.14.2 or,
-at your option, any later version of Perl 5 you may have available.
-
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 

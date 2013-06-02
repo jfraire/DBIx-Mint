@@ -60,11 +60,11 @@ sub schema {
 
 =head1 NAME
 
-DBIx::Mint - Yet another light-weight ORM
+DBIx::Mint - A light-weight ORM for Perl
 
 =head1 VERSION
 
-This documentation refers to DBIx::Mint 0.01
+This documentation refers to DBIx::Mint 0.02
 
 =head1 SYNOPSIS
 
@@ -111,7 +111,7 @@ And in your your scripts:
  use My::Schema;
  
  # Connect to the database
- my $mint = DBIx::Mint->connect( $dsn, $user, $passwd, { dbi => 'options'} );
+ DBIx::Mint->connect( $dsn, $user, $passwd, { dbi => 'options'} );
  
  my $team    = Bloodbowl::Team->find(1);
  my @players = $team->get_players;
