@@ -289,11 +289,11 @@ The above call would produce a join between the tables 'coaches' and 'teams' usi
 
  $rs->new( table => 'coaches' )
     ->inner_join( ['teams',   't'], { 'me.id'  => 't.coach' })
-    ->inner_join( ['players', 'p'], { 't.id'   => 'p.team'  });
+    ->left_join(  ['players', 'p'], { 't.id'   => 'p.team'  });
 
 You can alias the table names. 'me' always refers to the starting table (coaches in the example above).
 
-Note that the first example does not include table aliases. In this case, the keys of the hash reference are fields of the starting table (coaches) and values of the hash reference refer to the table specified in the same call. This is valid for longer joins.
+Note that the first example does not include table aliases. In this case, the keys of the hash reference are fields of the starting table (coaches) and its values refer to the table that will be joined. This is also valid for longer joins.
 
 =head2 FETCHING DATA
 

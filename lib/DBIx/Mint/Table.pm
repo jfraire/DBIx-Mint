@@ -21,9 +21,9 @@ sub insert {
     my $schema = DBIx::Mint::Schema->instance->for_class($class)
         || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
 
-	# Fields that do not go into the database
-	my %to_be_removed;
-	@to_be_removed{ @{ $schema->fields_not_in_db } } = (1) x @{ $schema->fields_not_in_db };
+    # Fields that do not go into the database
+    my %to_be_removed;
+    @to_be_removed{ @{ $schema->fields_not_in_db } } = (1) x @{ $schema->fields_not_in_db };
     
     my @fields;
     my @objects;
@@ -34,43 +34,43 @@ sub insert {
         @objects = ($proto);
     }
     elsif (!ref $proto && ref $_[0]) {
-		# Inserting a set of objects
-		@fields = grep { !exists $to_be_removed{$_} } keys %{$_[0]};
-		@objects = @_;
-	}
-	elsif (!ref $proto && @_) {
-		# Inserting a single object, from key-value pairs
-		my %hash;
-		eval { %hash = @_ };
-		croak "Problem inserting object: $@" if $@;
-		@fields = grep { !exists $to_be_removed{$_} } keys %hash;
-		@objects = ( \%hash );
-	}
+        # Inserting a set of objects
+        @fields = grep { !exists $to_be_removed{$_} } keys %{$_[0]};
+        @objects = @_;
+    }
+    elsif (!ref $proto && @_) {
+        # Inserting a single object, from key-value pairs
+        my %hash;
+        eval { %hash = @_ };
+        croak "Problem inserting object: $@" if $@;
+        @fields = grep { !exists $to_be_removed{$_} } keys %hash;
+        @objects = ( \%hash );
+    }
     else {
-		croak "Unrecognized calling of DBIx::Class::Table->insert";
-	} 
+        croak "Unrecognized calling of DBIx::Class::Table->insert";
+    } 
     
     my @quoted = map { DBIx::Mint->instance->dbh->quote_identifier( $_ ) } @fields;
     my $sql = sprintf 'INSERT INTO %s (%s) VALUES (%s)',
         $schema->table, join(', ', @quoted), join(', ', ('?') x @fields);
 
-	my $sub = sub {
-		my $sth = $_->prepare($sql);
-		my @ids;
-		foreach my $obj (@objects) {
-			# Obtain values from the object
-			my @values = @$obj{ @fields };
-			$sth->execute(@values);
-			if ($schema->auto_pk) {
-				my $id = $_->last_insert_id(undef, undef, $schema->table, undef);
-				$obj->{ $schema->pk->[0] } = $id;
-			}
-			push @ids, [ @$obj{ @{ $schema->pk } } ]; 
-		}
-		return @ids
-	};
-	my $conn = DBIx::Mint->instance->connector;
-	my @ids = $conn->run( fixup => $sub );
+    my $sub = sub {
+        my $sth = $_->prepare($sql);
+        my @ids;
+        foreach my $obj (@objects) {
+            # Obtain values from the object
+            my @values = @$obj{ @fields };
+            $sth->execute(@values);
+            if ($schema->auto_pk) {
+                my $id = $_->last_insert_id(undef, undef, $schema->table, undef);
+                $obj->{ $schema->pk->[0] } = $id;
+            }
+            push @ids, [ @$obj{ @{ $schema->pk } } ]; 
+        }
+        return @ids
+    };
+    my $conn = DBIx::Mint->instance->connector;
+    my @ids = $conn->run( fixup => $sub );
     return wantarray ? @ids : $ids[0][0];
 }
 

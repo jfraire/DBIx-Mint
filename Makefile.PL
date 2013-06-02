@@ -12,6 +12,7 @@ WriteMakefile(
         'MooX::Singleton'     =>   0,
         'SQL::Abstract::More' =>   0,
         'List::MoreUtils'     =>   0,
+        'DBIx::Connector'     =>   0,
         'Clone'               =>   0,
     },
     BUILD_REQUIRES   => {

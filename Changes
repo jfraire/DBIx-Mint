@@ -1,5 +1,11 @@
 Revision history for Perl extension DBIx::Mint.
 
+0.02  2013-06-02
+	- Added DBIx::Connector
+	- DBIx::Mint now establishes the database connection
+	  directly, and it will not accept the database handle
+	  as it did before.
+
 0.01  Wed Sep  5 11:42:36 2012
 	- original version; created by h2xs 1.23 with options
 		-X DBIx::Mint
