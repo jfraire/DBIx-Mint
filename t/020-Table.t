@@ -14,9 +14,8 @@ BEGIN {
     use_ok 'DBIx::Mint::Schema';
 }
 
-my $dbh  = Test::DB->init_db;
-my $mint = DBIx::Mint->instance( dbh => $dbh );
-isa_ok( $mint, 'DBIx::Mint');
+Test::DB->connect_db;
+isa_ok( DBIx::Mint->instance, 'DBIx::Mint');
 
 my $schema = DBIx::Mint::Schema->instance;
 $schema->add_class(
@@ -76,8 +75,8 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
         {name => 'user e', email => 'e@blah.com', password => 'xxx'}, 
         {name => 'user f', email => 'f@blah.com', password => 'xxx'}, 
     );
-    ok defined $user->id,  'Inserted object has the auto-generated id field';
-    is $user->id, $ids[0], 'Auto-generated id field is the same as the one returned';
+    ok defined $user->id,     'Inserted object has the auto-generated id field';
+    is $user->id, $ids[0][0], 'Auto-generated id field is the same as the one returned';
 }
 {
     my $user  = Bloodbowl::Coach->new(name => 'user h', email => 'h@blah.com', password => 'xxx');
@@ -143,6 +142,5 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     ok !defined $test,   'Deleted object could not be found';
 }
 
-$dbh->disconnect;
 done_testing();
 

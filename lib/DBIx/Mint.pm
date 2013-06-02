@@ -1,5 +1,6 @@
 package DBIx::Mint;
 
+use DBIx::Connector;
 use DBIx::Mint::Schema;
 use SQL::Abstract::More;
 use Carp;
@@ -8,37 +9,45 @@ with 'MooX::Singleton';
 
 our $VERSION = 0.01;
 
-has abstract => (
-    is      => 'rw',
-    default => sub {
-        SQL::Abstract::More->new();
-    },
-);
-
-has dbh    => ( is => 'rw', predicate => 1 );
-before dbh => sub {
-    my ($self, $dbh) = @_;
-    croak "Please feed DBIx::Mint with a database connection"
-        unless $dbh || $self->has_dbh;
-};
+has abstract  => ( is => 'rw', default => sub { SQL::Abstract::More->new(); } );
+has connector => ( is => 'rw', predicate => 1 );
 
 sub new {
     croak "You should call DBIx::Mint->instance instead of new";
 }
 
+sub dbh {
+    my $self = shift;
+    return  $self->has_connector ? $self->connector->dbh
+        : croak 'Please feed DBIx::Mint with a database connection';
+};
+
+sub connect {
+    my $class = shift;
+    my $self  = $class->instance;        
+    $self->connector( DBIx::Connector->new(@_) );
+    $self->connector->mode('ping');
+    $self->dbh->{HandleError} = sub { croak $_[0] };
+    return $self;
+}
+
 sub do_transaction {
     my ($self, $trans) = @_;
-    $self->dbh->begin_work if $self->dbh->{AutoCommit};
-    eval {
-        &$trans;
-        $self->dbh->commit;
-    };
+
+	my $auto = $self->dbh->{AutoCommit};
+	$self->dbh->{AutoCommit} = 0 if $auto;
+
+    my @output;    
+    eval { @output = $self->connector->txn( $trans ) };
+
     if ($@) {
-        carp "Transaction failed: $@\n";
-        $self->dbh->rollback;
-        return undef;
-    }
-    return 1;
+		carp "Transaction failed: $@";
+		$self->dbh->rollback;
+		$self->dbh->{AutoCommit} = 1 if $auto;
+		return undef;
+	}
+	$self->dbh->{AutoCommit} = 1 if $auto;
+    return @output ? @output : 1;    
 }
 
 sub schema {
@@ -237,6 +246,8 @@ This distribution depends on the following external, non-core modules:
 =item SQL::Abstract::More
 
 =item DBI
+
+=item DBIx::Connector
 
 =item List::MoreUtils
 

@@ -3,7 +3,7 @@
 use lib 't';
 use Test::DB;
 use DBIx::Mint;
-use Test::More;
+use Test::More tests => 13;
 use strict;
 use warnings;
 use v5.10;
@@ -11,8 +11,7 @@ use v5.10;
 # Tests the examples in DBIx::Mint POD synopsis
 
 # Connect to the database
-my $dbh  = Test::DB->init_db;
-my $mint = DBIx::Mint->instance( dbh => $dbh );
+my $mint = Test::DB->connect_db;
 isa_ok $mint, 'DBIx::Mint';
 
 {
@@ -104,5 +103,4 @@ isa_ok $mint, 'DBIx::Mint';
         'Join with aliased tables works as advertised';
 }
 
-$dbh->disconnect;
 done_testing();

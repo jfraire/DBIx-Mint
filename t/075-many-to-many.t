@@ -74,10 +74,8 @@ can_ok('Bloodbowl::Player',                   'get_skills'  );
 can_ok('Bloodbowl::Skill',                    'get_players' );
 
 # Database connection
-my $mint = DBIx::Mint->instance;
-my $dbh  = Test::DB->init_db;
-$mint->dbh($dbh);
-ok( DBIx::Mint->instance->has_dbh,            'Mint has a database handle');
+my $mint = Test::DB->connect_db;
+ok( DBIx::Mint->instance->has_connector,    'Mint has a database connection');
     
 {
     my $player = Bloodbowl::Player->find(1);
@@ -93,5 +91,4 @@ ok( DBIx::Mint->instance->has_dbh,            'Mint has a database handle');
     is $players[0]->name, 'player1',          'Retrieved record is correct';
 }
 
-$dbh->disconnect;
 done_testing();

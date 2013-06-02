@@ -153,11 +153,10 @@ sub select_sql {
 
 sub select_sth {
     my $self = shift;
-    my $mint = DBIx::Mint->instance;
     my ($sql, @bind) = $self->select_sql;
-    return DBIx::Mint->instance->dbh->prepare($sql), @bind;
+    my $conn = DBIx::Mint->instance->connector;
+    return $conn->run(fixup => sub { $_->prepare($sql) }), @bind;
 }
-
 
 # Fetching data
 
