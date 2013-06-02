@@ -79,10 +79,8 @@ can_ok('Bloodbowl::Team',    'get_players' );
 can_ok('Bloodbowl::Player',  'get_team'    );
 
 # Database connection
-my $mint = DBIx::Mint->instance;
-my $dbh  = Test::DB->init_db;
-$mint->dbh($dbh);
-ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
+my $mint = Test::DB->connect_db;
+ok( DBIx::Mint->instance->has_connector,    'Mint has a database connection');
 
 {
     my $team = Bloodbowl::Team->find(1);
@@ -99,5 +97,4 @@ ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
     is $team->name, 'Tinieblas',            'Relationship to->from returns a single object';
 }
 
-$dbh->disconnect;
 done_testing();

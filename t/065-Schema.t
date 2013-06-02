@@ -64,10 +64,8 @@ $schema->add_relationship(
 can_ok('Bloodbowl::Team',    'add_players' );
 
 # Database connection
-my $mint = DBIx::Mint->instance;
-my $dbh  = Test::DB->init_db;
-$mint->dbh($dbh);
-ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
+my $mint = Test::DB->connect_db;
+ok( DBIx::Mint->instance->has_connector,    'Mint has a database connection');
 
 {
     my $team = Bloodbowl::Team->find(1);
@@ -89,9 +87,9 @@ ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
         { name => 'player vwx', position => 'back'   },
     );
     is @ids, 3,                              'There are as many ids returned as records inserted';
-    like $ids[0], qr{\d+},                   'Primary keys were returned by insert_into';
-    
-    my $player = Bloodbowl::Player->find($ids[2]);
+    like $ids[0]->[0], qr{\d+},              'Primary keys were returned by insert_into';
+
+    my $player = Bloodbowl::Player->find($ids[2]->[0]);
     isa_ok $player, 'Bloodbowl::Player';
     is $player->name, 'player vwx',          'Retrieved record is correct';
     is $player->team, 1,                     'And it does point to the object that inserted it';
@@ -99,5 +97,4 @@ ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
     is $test->name, 'Tinieblas',             'The foreign key record was retrieved by inverse_method'; 
 }
 
-$dbh->disconnect;
 done_testing();

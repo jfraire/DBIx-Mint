@@ -10,18 +10,15 @@ with 'MooX::Singleton';
 our $VERSION = 0.01;
 
 has abstract  => ( is => 'rw', default => sub { SQL::Abstract::More->new(); } );
-has dbh       => ( is => 'rw', predicate => 1 );
 has connector => ( is => 'rw', predicate => 1 );
 
 sub new {
     croak "You should call DBIx::Mint->instance instead of new";
 }
 
-around dbh => sub {
-    my ($orig, $self, $dbh) = @_;
-    $orig->($self, $dbh) if defined $dbh;
-    return $self->has_dbh       ? $orig->($self)
-        :  $self->has_connector ? $self->connector->dbh
+sub dbh {
+    my $self = shift;
+    return  $self->has_connector ? $self->connector->dbh
         : croak 'Please feed DBIx::Mint with a database connection';
 };
 

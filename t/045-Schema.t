@@ -76,10 +76,8 @@ $schema->add_relationship(
 can_ok('Bloodbowl::Team',    'get_players' );
 
 # Database connection
-my $mint = DBIx::Mint->instance;
-my $dbh  = Test::DB->init_db;
-$mint->dbh($dbh);
-ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
+my $mint = Test::DB->connect_db;
+ok( DBIx::Mint->instance->has_connector,    'Mint has a database connection');
 
 {
     my $team = Bloodbowl::Team->find(1);
@@ -94,5 +92,4 @@ ok( DBIx::Mint->instance->has_dbh,          'Mint has a database handle');
     is $count, 5,                           'Relationship returns an iterator that works';
 }
 
-$dbh->disconnect;
 done_testing();
