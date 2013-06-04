@@ -7,7 +7,7 @@ use Carp;
 use Moo;
 with 'MooX::Singleton';
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 has abstract  => ( is => 'rw', default => sub { SQL::Abstract::More->new(); } );
 has connector => ( is => 'rw', predicate => 1 );
@@ -64,7 +64,7 @@ DBIx::Mint - A light-weight ORM for Perl
 
 =head1 VERSION
 
-This documentation refers to DBIx::Mint 0.02
+This documentation refers to DBIx::Mint 0.03
 
 =head1 SYNOPSIS
 
@@ -152,7 +152,7 @@ DBIx::Mint is an object-relational mapping module for Perl. Its goals are:
 
 =item * To provide a flexible, powerful way to build relationships between classes
 
-=item * To play nice with your own classes. In particular, DBIx::Mint is build using Moo and it does not clash with accessors defined in your classes by Moo (although we do treat your objects as hash references under the hood)
+=item * To play nice with your own classes. In particular, DBIx::Mint is built using Moo and it does not clash with accessors defined in your classes by Moo (although we do treat your objects as hash references under the hood)
 
 =item * To be light on dependencies
 
@@ -161,6 +161,8 @@ DBIx::Mint is an object-relational mapping module for Perl. Its goals are:
 On the other side of the equation, it has some strong restrictions:
 
 =over
+
+=item * We are using Moo for the OO stuff. Your classes should use it, too.
 
 =item * It supports a single database handle and a single database schema. It uses a Moo::Singleton to keep everything together.
 
@@ -198,7 +200,7 @@ Returns an instance of L<DBIx::Mint>. It is a singleton, so you can access it fr
 
 =head2 connect
 
-This is a class method that receives your database connection instructions and instantiates the L<DBIx::Connector> object:
+This is a class method that receives your database connection parameters per L<DBI>'s spec and instantiates the L<DBIx::Connector> object:
 
  DBIx::Mint->connect('dbi:SQLite:dbname=t/bloodbowl.db', '', '',
         { AutoCommit => 1, RaiseError => 1 });
@@ -233,6 +235,12 @@ This is simply a method that will return your L<DBIx::Mint::Schema> instance:
 This method will take a code reference and execute it within a transaction block. In case the transaction fails (your code dies) it is rolled back and B<a warning is thrown>. In this case, L<do_transaction> will return C<undef>. If successful, the transaction will be commited and the method will return a true value. 
 
  $mint->do_transaction( $code_ref ) || die "Transaction failed!";
+ 
+=head1 USE OF L<DBIx::Connector>
+
+Under the hood, DBIx::Mint uses DBIx::Connector to hold the database handle and to make sure that the connection is well and alive when you need it. It has to be noted as well that the database modification routines employ the 'fixup' mode for modifying the database at a very fine-grained level, so that no side-effects are visible. This allows us to use DBIx::Connector in the most efficient way.
+
+The query routines offered by DBIx::Mint::ResultSet use the 'fixup' mode while retrieving the statement holder with the SELECT query already prepared, but not while extracting information in the execution phase. If you fear that the database connection may have died in the meantime, you can always use Mint's C<connector> method to get a hold of the DBIx::Connector object and manage the whole query process yourself. This should not be necessary, though.
 
 =head1 DEPENDENCIES
 

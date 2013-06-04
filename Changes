@@ -1,4 +1,12 @@
-Revision history for Perl extension DBIx::Mint.
+Revision history for Perl extension DBIx::Mint
+
+0.03 2013-06-04
+	- Removed use of given/when construct as it is now
+	  marked as 'experimental' in Perl 5.17 and upwards
+	- In DBIx::Mint::Schema, add_relationship checks the 
+	  validity of parameter result_as. The documentation
+	  and tests were updated, since the option 'result_set'
+	  should have been 'resultset' instead.
 
 0.02  2013-06-02
 	- Added DBIx::Connector

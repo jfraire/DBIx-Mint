@@ -141,12 +141,23 @@ sub _build_method {
             my %conditions;
             $conditions{"me.$_"} = $self->$_ foreach @pk;
             my $rs_copy = $rs->search(\%conditions);
-            given ( $result_as ) {
-                when ('single')       { return $rs_copy->single;      }
-                when ('all')          { return $rs_copy->all;         }
-                when ('as_iterator')  { return $rs_copy->as_iterator; }
-                when ('as_sql')       { return $rs_copy->select_sql;  }
-                default               { return $rs_copy;              }
+            if (!defined $result_as || $result_as eq 'resultset') {
+                return $rs_copy;
+            }
+            elsif ( $result_as eq 'single' ) {
+                return $rs_copy->single;      
+            }
+            elsif ($result_as eq 'all') {
+                return $rs_copy->all;
+            }
+            elsif ($result_as eq 'as_iterator') { 
+                return $rs_copy->as_iterator; 
+            }
+            elsif ($result_as eq 'as_sql') { 
+                return $rs_copy->select_sql;  
+            }
+            else {
+                croak "result_as option not recognized for $class\::$method: '$result_as'";
             }
         };
     }
@@ -338,7 +349,7 @@ These two parameters define the results that you will get from the created metho
 
 =over
 
-=item result_set
+=item resultset
 
 This is the default. The method will return a L<DBIx::Mint::ResultSet> object suitable for chaining conditions or paging. It offers the most flexibility.
 
