@@ -19,8 +19,8 @@ sub init {
     my $dbh = shift;
     local $/ = ';';
     while (<DATA>) {
-        next unless $_;
-        s/^\s+|\s+$//g;
+        next if /^\s*$/;
+        s/^\s+|;|\s+$//g;
         $dbh->do($_);
     }
 }
