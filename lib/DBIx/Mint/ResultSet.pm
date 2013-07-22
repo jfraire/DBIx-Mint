@@ -6,6 +6,7 @@ use List::MoreUtils qw(uniq);
 use Clone qw(clone);
 use Moo;
 
+has instance      => ( is => 'ro', default   => sub { '_DEFAULT' });
 has table         => ( is => 'rw', required  => 1 );
 has target_class  => ( is => 'rw', predicate => 1 );
 has columns       => ( is => 'rw', default   => sub {[]});
@@ -139,7 +140,7 @@ sub select_sql {
     # joins    
     my @joins = ($self->table.'|'.'me', @{$self->joins});
     
-    return DBIx::Mint->instance->abstract->select(
+    return DBIx::Mint->instance( $self->instance )->abstract->select(
         -columns    => \@cols,
         -from       => [ -join => @joins ],
         -where      => [ -and  => $self->where ],
@@ -154,7 +155,7 @@ sub select_sql {
 sub select_sth {
     my $self = shift;
     my ($sql, @bind) = $self->select_sql;
-    my $conn = DBIx::Mint->instance->connector;
+    my $conn = DBIx::Mint->instance( $self->instance )->connector;
     return $conn->run(fixup => sub { $_->prepare($sql) }), @bind;
 }
 
