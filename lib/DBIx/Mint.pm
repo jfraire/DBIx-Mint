@@ -15,11 +15,17 @@ has abstract  => ( is => 'rw', default   => sub { SQL::Abstract::More->new(); } 
 has schema    => ( is => 'rw', default   => sub { return DBIx::Mint::Schema->instance } );
 has connector => ( is => 'rw', predicate => 1 );
 
+sub BUILD {
+    my $self = shift;
+    my $name = $self->name;
+    $object_pool{ $name } = $self;
+}
+
 sub instance {
     my ($class, $name) = @_;
     $name //= '_DEFAULT';
     if (!exists $object_pool{$name}) {
-        $object_pool{$name} = $class->new;
+        $class->new( name => $name );
     }
     return $object_pool{$name};
 }
