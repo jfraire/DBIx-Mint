@@ -5,13 +5,14 @@ use DBIx::Mint::Schema::Class;
 use Carp;
 use v5.10;
 use Moo;
-with 'MooX::Singleton';
 
 has classes       => ( is => 'rw', default => sub {{}} );
 has tables        => ( is => 'rw', default => sub {{}} );
 
-sub new {
-    croak "You should call DBIx::Mint::Schema->instance instead of new";
+sub instance {
+    my ($class, $name) = @_;
+    $name //= '_DEFAULT';
+    return DBIx::Mint->instance($name)->schema;
 }
 
 sub add_class {

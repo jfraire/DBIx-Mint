@@ -12,7 +12,7 @@ my %object_pool;
 
 has name      => ( is => 'ro', default   => sub { '_DEFAULT' } );
 has abstract  => ( is => 'rw', default   => sub { SQL::Abstract::More->new(); } );
-has schema    => ( is => 'rw', default   => sub { return DBIx::Mint::Schema->instance } );
+has schema    => ( is => 'rw', default   => sub { return DBIx::Mint::Schema->new } );
 has connector => ( is => 'rw', predicate => 1 );
 
 sub BUILD {
