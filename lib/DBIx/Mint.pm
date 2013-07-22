@@ -5,15 +5,23 @@ use DBIx::Mint::Schema;
 use SQL::Abstract::More;
 use Carp;
 use Moo;
-with 'MooX::Singleton';
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
-has abstract  => ( is => 'rw', default => sub { SQL::Abstract::More->new(); } );
+my %object_pool;
+
+has name      => ( is => 'ro', default   => sub { '_DEFAULT' } );
+has abstract  => ( is => 'rw', default   => sub { SQL::Abstract::More->new(); } );
+has schema    => ( is => 'rw', default   => sub { return DBIx::Mint::Schema->instance } );
 has connector => ( is => 'rw', predicate => 1 );
 
-sub new {
-    croak "You should call DBIx::Mint->instance instead of new";
+sub instance {
+    my ($class, $name) = @_;
+    $name //= '_DEFAULT';
+    if (!exists $object_pool{$name}) {
+        $object_pool{$name} = $class->new;
+    }
+    return $object_pool{$name};
 }
 
 sub dbh {
@@ -23,8 +31,14 @@ sub dbh {
 };
 
 sub connect {
-    my $class = shift;
-    my $self  = $class->instance;        
+    my $proto = shift;
+    my $self;
+    if (ref $proto) {
+        $self = $proto;
+    }
+    else {
+        $self = $proto->instance();
+    }
     $self->connector( DBIx::Connector->new(@_) );
     $self->connector->mode('ping');
     $self->dbh->{HandleError} = sub { croak $_[0] };
@@ -48,10 +62,6 @@ sub do_transaction {
     }
     $self->dbh->{AutoCommit} = 1 if $auto;
     return @output ? @output : 1;    
-}
-
-sub schema {
-    return DBIx::Mint::Schema->instance;
 }
 
 1;
