@@ -1,8 +1,17 @@
 package DBIx::Mint::Table;
 
-use DBIx::Mint::Schema;
+use DBIx::Mint;
 use Carp;
-use Role::Tiny;
+use Moo::Role;
+
+# has _name => (is => 'ro', default => sub { '_DEFAULT' });
+
+# Get the DBIx::Mint object to work with
+sub instance {
+    my ($class, $name) = @_;
+    $name //= '_DEFAULT';
+    return DBIx::Mint->instance($name);
+}
 
 # Methods that insert data
 sub create {
@@ -102,26 +111,48 @@ sub update {
 }
 
 sub delete {
+    # Input:
+    # Case 1) a class name, a data hash ref, a Mint object
+    # Case 2) a class name, a data hash ref
+    # Case 3) a class name, a list of scalars (primary key values)
+    # Case 4) a blessed object
+    
     my $proto = shift;
-    my $class = ref $proto ? ref $proto : $proto;
-    my $schema = DBIx::Mint::Schema->instance->for_class($class)
+    my $class;
+    my $data;
+    my $mint;
+    if (!ref $proto) {
+        $class = $proto;
+        if (@_ == 2 && ref $_[0]) {
+            # Case 1
+            ($data, $mint) = @_;
+        }
+        elsif (ref $_[0]) {
+            # Case 2
+            $data = shift;
+            $mint = DBIx::Mint->instance('_DEFAULT');
+        }
+        else {
+            # Case 3
+            my %data = @_;
+            $data = \%data;
+        }
+    }
+    else {
+        # Case 4
+        $class   = ref $proto;
+        my %data = %$proto;
+        $data    = \%data;
+        my $name = delete $data->{_name} || '_DEFAULT';
+        $mint    = DBIx::Mint->instance($name);
+    }
+    
+    my $schema = $mint->schema->for_class($class)    
         || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
 
     # Build the SQL
-    my ($sql, @bind);
-    if (ref $proto) {
-        # Deleting a single object
-        my @pk    = @{ $schema->pk };
-        my %where = map { $_ => $proto->$_ } @pk;
-        ($sql, @bind) = DBIx::Mint->instance->abstract->delete($schema->table, \%where);
-    }
-    else {
-        # Deleting at class level
-        ($sql, @bind) = DBIx::Mint->instance->abstract->delete($schema->table, $_[0]);
-    }
-    
-    # Execute the SQL
-    my $conn = DBIx::Mint->instance->connector;
+    my ($sql, @bind) = $mint->abstract->delete($schema->table, $data);
+    my $conn = $mint->connector;
     my $res = $conn->run( fixup => sub { $_->do($sql, undef, @bind) } );
     if (ref $proto && $res) {
         %$proto = ();
@@ -134,25 +165,40 @@ sub find {
     my $class = shift;
     croak "find must be called as a class method" if ref $class;
     
-    my $schema = DBIx::Mint::Schema->instance->for_class($class);
-    
+    # Input:
+    # Case 1) a data hash ref, a Mint object
+    # Case 2) a data hash ref
+    # Case 3) a list of scalars (primary key values) 
     my $data;
-    if (ref $_[0]) {
-        $data = shift;
+    my $mint;
+    my $schema;
+    if (ref $_[0] && @_ == 2) {
+        # Case 1
+        $data   = shift;
+        $mint   = shift;
+        $schema = $mint->schema->for_class($class);
     }
     else {
-        my @pk   = @{ $schema->pk };
-        my %data;
-        @data{@pk} = @_;
-        $data = \%data;
+        $mint   = DBIx::Mint->instance('_DEFAULT');
+        $schema = $mint->schema->for_class($class);
+        if (ref $_[0]) {
+            # Case 2
+            $data = shift;
+        }
+        else {
+            # Case 3
+            my @pk   = @{ $schema->pk };
+            my %data;
+            @data{@pk} = @_;
+            $data = \%data;
+        }
     }
 
     my $table  = $schema->table;    
-    my ($sql, @bind) = DBIx::Mint->instance->abstract->select($table, '*', $data);
+    my ($sql, @bind) = $mint->abstract->select($table, '*', $data);
     
     # Execute the SQL
-    my $conn = DBIx::Mint->instance->connector;
-    my $res = $conn->run( fixup => sub { $_->selectall_arrayref($sql, {Slice => {}}, @bind) } );
+    my $res = $mint->connector->run( fixup => sub { $_->selectall_arrayref($sql, {Slice => {}}, @bind) } );
     
     return undef unless defined $res->[0];
     return bless $res->[0], $class;    
@@ -166,10 +212,19 @@ sub find_or_create {
 }
 
 sub result_set {
-    my $class = shift;
-    my $schema = DBIx::Mint::Schema->instance->for_class($class);
+    my ($class, $instance) = @_;
+    my $mint;
+    if (ref $instance) { 
+        $mint = $instance;
+    }
+    else {
+        $instance //= '_DEFAULT';
+        $mint = DBIx::Mint->instance($instance);
+    }
+    
+    my $schema = $mint->schema->for_class($class);
     croak "result_set: The schema for $class is undefined" unless defined $schema;
-    return DBIx::Mint::ResultSet->new( table => $schema->table );
+    return DBIx::Mint::ResultSet->new( table => $schema->table, instance => $mint->name );
 }
 
 1;

@@ -7,6 +7,7 @@ use Clone qw(clone);
 use Moo;
 
 has instance      => ( is => 'ro', default   => sub { '_DEFAULT' });
+
 has table         => ( is => 'rw', required  => 1 );
 has target_class  => ( is => 'rw', predicate => 1 );
 has columns       => ( is => 'rw', default   => sub {[]});
