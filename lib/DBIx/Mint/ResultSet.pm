@@ -215,7 +215,8 @@ sub inflate {
     my ($self, $row) = @_;
     return undef unless defined $row;
     return $row  unless $self->has_target_class;
-    return bless  $row, $self->target_class;
+    $row->{_name} = $self->instance;
+    return bless $row, $self->target_class;
 }
 
 1;
