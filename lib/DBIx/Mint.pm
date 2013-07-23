@@ -80,7 +80,7 @@ DBIx::Mint - A light-weight ORM for Perl
 
 =head1 VERSION
 
-This documentation refers to DBIx::Mint 0.03
+This documentation refers to DBIx::Mint 0.04
 
 =head1 SYNOPSIS
 
