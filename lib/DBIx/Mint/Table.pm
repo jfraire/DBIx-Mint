@@ -9,50 +9,69 @@ has _name => (is => 'ro', default => sub { '_DEFAULT' });
 # Methods that insert data
 sub create {
     my $class = shift;
-    my $obj   = $class->new(@_);
-    $obj->insert;
+    my $mint;
+    if (ref $_[0] && ref $_[0] eq 'DBIx::Mint') {
+        $mint = shift;
+    }
+    my $obj = $class->new(@_);
+    $obj->insert($mint);
     return $obj;
 }
 
-# There are three options for insert: Instance method for an existing object,
-# class method for multiple objects, or class method for a new record in key-value pairs.
-# It returns the id(s) of the inserted object(s)
 sub insert {
+    # Input:
+    # Case 1) a class name, a Mint object, any number of hash refs to insert
+    # Case 2) a class name, any number of hash refs to insert
+    # Case 3) a class name, key-value pairs
+    # Case 4) a blessed object and a Mint object
+    # Case 5) a blessed object
+
     my $proto = shift;
-    my $class = ref $proto ? ref $proto : $proto;
-    my $schema = DBIx::Mint::Schema->instance->for_class($class)
+    my $class;
+    my $mint;
+    my @objects;
+    if (!ref $proto) {
+        $class = $proto;
+        if (ref $_[0] && ref $_[0] eq 'DBIx::Mint') {
+           # Case 1
+           $mint = shift;
+           @objects = @_;
+        }
+        elsif (ref $_[0]) {
+            # Case 2
+            $mint = DBIx::Mint->instance('_DEFAULT');
+            @objects = @_;
+        }
+        else {
+            # Case 3
+            $mint = DBIx::Mint->instance('_DEFAULT');
+            my %data = @_;
+            @objects = (\%data);
+        }
+     }
+     else {
+         $class = ref $proto;
+         if ($_[0] && ref $_[0] eq 'DBIx::Mint') {
+             # Case 4
+             $mint = shift;
+         }
+         else {
+             # Case 5
+             $mint = DBIx::Mint->instance('_DEFAULT');
+         }
+         @objects = ($proto);
+     }
+
+    my $schema = $mint->schema->for_class( $class )
         || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
 
     # Fields that do not go into the database
     my %to_be_removed;
     @to_be_removed{ @{ $schema->fields_not_in_db } } = (1) x @{ $schema->fields_not_in_db };
-    
-    my @fields;
-    my @objects;
-    
-    if (ref $proto) {
-        # Inserting a single, already created object        
-        @fields = grep {!exists $to_be_removed{$_}} keys %$proto;
-        @objects = ($proto);
-    }
-    elsif (!ref $proto && ref $_[0]) {
-        # Inserting a set of objects
-        @fields = grep { !exists $to_be_removed{$_} } keys %{$_[0]};
-        @objects = @_;
-    }
-    elsif (!ref $proto && @_) {
-        # Inserting a single object, from key-value pairs
-        my %hash;
-        eval { %hash = @_ };
-        croak "Problem inserting object: $@" if $@;
-        @fields = grep { !exists $to_be_removed{$_} } keys %hash;
-        @objects = ( \%hash );
-    }
-    else {
-        croak "Unrecognized calling of DBIx::Class::Table->insert";
-    } 
-    
-    my @quoted = map { DBIx::Mint->instance->dbh->quote_identifier( $_ ) } @fields;
+
+    my @fields = grep {!exists $to_be_removed{$_}} keys %{ $objects[0] };
+    my @quoted = map { $mint->dbh->quote_identifier( $_ ) } @fields;
+
     my $sql = sprintf 'INSERT INTO %s (%s) VALUES (%s)',
         $schema->table, join(', ', @quoted), join(', ', ('?') x @fields);
 
@@ -71,8 +90,7 @@ sub insert {
         }
         return @ids
     };
-    my $conn = DBIx::Mint->instance->connector;
-    my @ids = $conn->run( fixup => $sub );
+    my @ids = $mint->connector->run( fixup => $sub );
     return wantarray ? @ids : $ids[0][0];
 }
 
@@ -107,7 +125,7 @@ sub update {
         # Case 3: Updating a blessed object
         $class = ref $proto;
         my %copy = %$proto;
-        $set    = \%copy;
+        $set     = \%copy;
 
         $mint    = DBIx::Mint->instance( $proto->_name );        
         $schema = $mint->schema->for_class($class)    
@@ -306,18 +324,43 @@ Triggers can be added using the methods before, after, and around from L<Class::
 
 =head1 METHODS
 
-=head2 insert
-
-When called as a class method, it takes a list of hash references and inserts them into the table which corresponds to the calling class. The hash references must have the same keys to benefit from a prepared statement holder. The list of fields is taken from the first record. If only one record is used, it can be simply a list of key-value pairs.
-
-When called as an instance method, it inserts the data contained within the object into the database.
-
 =head2 create
 
 This methods is a convenience that calls new and insert to create a new object. The following two lines are equivalent:
 
  my $coach = Bloodbowl::Coach->create( name => 'Will E. Coyote');
  my $coach = Bloodbowl::Coach->new( name => 'Will E. Coyote')->insert;
+
+Or, using a different database connection:
+
+ my $mint  = DBIx::Mint->instance('other');
+ my $coach = Bloodbowl::Coach->create( $mint, name => 'Will E. Coyote');
+
+=head2 insert
+
+When called as a class method, it takes a list of hash references and inserts them into the table which corresponds to the calling class. The hash references must have the same keys to benefit from a prepared statement holder. The list of fields is taken from the first record. If only one record is used, it can be simply a list of key-value pairs.
+
+When called as an instance method, it inserts the data contained within the object into the database.
+
+ # Using the default DBIx::Mint object:
+ 
+ Bloodbowl::Coach->insert( name => 'Bruce Wayne' );
+ Bloodbowl::Coach->insert(
+    { name => 'Will E. Coyote' },
+    { name => 'Clark Kent'     },
+    { name => 'Peter Parker'   });
+
+ $batman->insert;
+
+Additionally, it can be given an alternative DBIx::Mint object to act on a connection other than the default one:
+
+ # Using a given DBIx::Mint object:
+ Bloodbowl::Coach->insert( $mint,
+    { name => 'Will E. Coyote' },
+    { name => 'Clark Kent'     },
+    { name => 'Peter Parker'   });
+
+ $batman->insert($mint);
 
 =head2 update
 
