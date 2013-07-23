@@ -4,14 +4,7 @@ use DBIx::Mint;
 use Carp;
 use Moo::Role;
 
-# has _name => (is => 'ro', default => sub { '_DEFAULT' });
-
-# Get the DBIx::Mint object to work with
-sub instance {
-    my ($class, $name) = @_;
-    $name //= '_DEFAULT';
-    return DBIx::Mint->instance($name);
-}
+has _name => (is => 'ro', default => sub { '_DEFAULT' });
 
 # Methods that insert data
 sub create {
@@ -85,29 +78,53 @@ sub insert {
 
 
 sub update {
-    my $proto = shift;
-    my $class = ref $proto ? ref $proto : $proto;
-    my $schema = DBIx::Mint::Schema->instance->for_class($class)
-        || croak "A schema definition for class $class is needed to use DBIx::Mint::ResourceSet::Table";
+    # Input:
+    # Case 1) a class name, two hash refs, a Mint object
+    # Case 2) a class name, two hash refs
+    # Case 3) a blessed object
 
-    # Build the SQL
-    my ($sql, @bind);
-    if (ref $proto) {
-        # Updating a single object
-        my @pk    = @{ $schema->pk };
-        my %where = map { $_ => $proto->$_ } @pk;
-        my %copy  = %$proto;
-        delete $copy{$_} foreach @{ $schema->fields_not_in_db }, @pk;
-        ($sql, @bind) = DBIx::Mint->instance->abstract->update($schema->table, \%copy, \%where);
+    my $proto = shift;
+    my $class;
+    my $set;
+    my $where;
+    my $mint;
+    my $schema;
+    if (!ref $proto) {
+        $class = $proto;
+        if (@_ == 3) {
+            # Case 1
+            ($set, $where, $mint) = @_;
+        }
+        else {
+            # Case 2
+            ($set, $where) = @_;
+            $mint = DBIx::Mint->instance('_DEFAULT');
+        }
+        $schema = $mint->schema->for_class($class)    
+            || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
     }
     else {
-        # Updating at class level
-        ($sql, @bind) = DBIx::Mint->instance->abstract->update($schema->table, $_[0], $_[1]);
+        # Case 3: Updating a blessed object
+        $class = ref $proto;
+        my %copy = %$proto;
+        $set    = \%copy;
+
+        $mint    = DBIx::Mint->instance( $proto->_name );        
+        $schema = $mint->schema->for_class($class)    
+            || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
+
+        my @pk     = @{ $schema->pk };
+        my %where  = map { $_ => $proto->$_ } @pk;
+        $where  = \%where;
+
+        delete $set->{$_} foreach @{ $schema->fields_not_in_db }, @pk;
     }
     
+    # Build the SQL
+    my  ($sql, @bind) = $mint->abstract->update($schema->table, $set, $where);
+    
     # Execute the SQL
-    my $conn = DBIx::Mint->instance->connector;
-    return $conn->run( fixup => sub { $_->do($sql, undef, @bind) } );
+    return $mint->connector->run( fixup => sub { $_->do($sql, undef, @bind) } );
 }
 
 sub delete {
@@ -199,9 +216,11 @@ sub find {
     
     # Execute the SQL
     my $res = $mint->connector->run( fixup => sub { $_->selectall_arrayref($sql, {Slice => {}}, @bind) } );
-    
     return undef unless defined $res->[0];
-    return bless $res->[0], $class;    
+
+    $res->[0]->{_name} = $mint->name;
+    my $obj = bless $res->[0], $class;
+    return $obj;
 }
 
 sub find_or_create {
@@ -311,12 +330,23 @@ When called as an instance method it updates only the record that corresponds to
  $coach->name('Mr. Will E. Coyote');
  $coach->update;
 
+To use a DBIx::Mint instance other than the default one:
+
+ my $mint = DBIx::Mint->instance('database_2');
+ Bloodbowl::Coach->update( { email => 'unknown'}, { email => undef }, $mint);
+
 =head2 delete
 
-This method deletes information from the corresponding table. Like insert and delete, if it is called as a class method it acts on the whole table; when called as an instance method it deletes the calling object from the database:
+This method deletes information from the corresponding table. When called as a class method it acts on the whole table; when called as an instance method it deletes the calling object from the database:
 
  Bloodbowl::Coach->delete({ email => undef });
+ Bloodbowl::Team->delete( name => 'Tinieblas');
  $coach->delete;
+
+The statements above delete information using the default database connection. If a named DBIx::Mint instance is needed:
+
+ my $mint = DBIx::Mint->instance('database_2');
+ Bloodbowl::Coach->delete({ email => undef }, $mint);
 
 =head2 find
 
@@ -324,6 +354,11 @@ Fetches a single record from the database and blesses it into the calling class.
 
  my $coach_3 = Bloodbowl::Coach->find(3);
  my $coach_3 = Bloodbowl::Coach->find({ name => 'coach 3'});
+
+To use a named DBIx::Mint instance:
+
+ my $mint = DBIx::Mint->instance('database_2');
+ my $coach_3 = Bloodbowl::Coach->find({ id => 3 }, $mint);
 
 =head2 find_or_create
 
