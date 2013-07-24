@@ -97,7 +97,7 @@ sub insert {
 
 sub update {
     # Input:
-    # Case 1) a class name, two hash refs, a Mint object
+    # Case 1) a class name, a Mint object, two hash refs 
     # Case 2) a class name, two hash refs
     # Case 3) a blessed object
 
@@ -202,26 +202,36 @@ sub find {
     
     # Input:
     # Case 1) a Mint object, a data hash ref
-    # Case 2) a data hash ref
-    # Case 3) a list of scalars (primary key values) 
+    # Case 2) a Mint object, a list of scalars (primary key values)
+    # Case 3) a data hash ref
+    # Case 4) a list of scalars (primary key values) 
     my $data;
     my $mint;
     my $schema;
-    if (ref $_[0] && @_ == 2) {
-        # Case 1
+    if (ref $_[0] && ref $_[0] eq 'DBIx::Mint') {
         $mint   = shift;
-        $data   = shift;
         $schema = $mint->schema->for_class($class);
+        if (ref $_[0]) {
+            # Case 1
+            $data   = shift;
+        }
+        else {
+            # Case 2
+            my @pk   = @{ $schema->pk };
+            my %data;
+            @data{@pk} = @_;
+            $data = \%data;
+        }
     }
     else {
         $mint   = DBIx::Mint->instance('_DEFAULT');
         $schema = $mint->schema->for_class($class);
         if (ref $_[0]) {
-            # Case 2
+            # Case 3
             $data = shift;
         }
         else {
-            # Case 3
+            # Case 4
             my @pk   = @{ $schema->pk };
             my %data;
             @data{@pk} = @_;

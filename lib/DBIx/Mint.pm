@@ -37,17 +37,18 @@ sub dbh {
 };
 
 sub connect {
-    my $proto = shift;
     my $self;
-    if (ref $proto) {
-        $self = $proto;
+    if (ref $_[0]) {
+        $self = shift;
     }
     else {
-        $self = $proto->instance();
+        my $class = shift;
+        $self = $class->instance();
     }
     $self->connector( DBIx::Connector->new(@_) );
     $self->connector->mode('ping');
     $self->dbh->{HandleError} = sub { croak $_[0] };
+
     return $self;
 }
 
