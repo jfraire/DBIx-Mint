@@ -103,15 +103,18 @@ sub update {
 
     my $proto = shift;
     my $class;
+    my $mint;
     my $set;
     my $where;
-    my $mint;
     my $schema;
     if (!ref $proto) {
         $class = $proto;
         if (@_ == 3) {
             # Case 1
-            ($set, $where, $mint) = @_;
+            ($mint, $set, $where) = @_;
+            croak "DBIx::Mint::Table update: Expected the first argument to be a DBIx::Mint object "
+                . "(since the three-args version was used)"
+                unless ref $mint eq 'DBIx::Mint';
         }
         else {
             # Case 2
@@ -120,6 +123,9 @@ sub update {
         }
         $schema = $mint->schema->for_class($class)    
             || croak "A schema definition for class $class is needed to use DBIx::Mint::Table";
+
+        croak "DBIx::Mint::Table update: called with incorrect arguments"
+            unless ref $set && ref $where;
     }
     else {
         # Case 3: Updating a blessed object

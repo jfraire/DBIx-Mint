@@ -115,7 +115,7 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
 
 # Tests for update
 {
-    Bloodbowl::Coach->update({password => '222'});
+    Bloodbowl::Coach->update({password => '222'}, {});
     my $user = Bloodbowl::Coach->find(2);
     is $user->password, '222', 'Update works fine as a class method';
 }
