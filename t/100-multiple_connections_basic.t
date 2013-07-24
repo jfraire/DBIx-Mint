@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use lib 't';
-use Test::More;
+use Test::More tests => 16;
 use strict;
 use warnings;
 
@@ -11,6 +11,7 @@ BEGIN {
     use_ok 'DBIx::Mint';
     use_ok 'Test::DB';
     use_ok 'Test::DB2';
+    use_ok 'Bloodbowl::Coach';
 }
 
 # Connect to the first database
@@ -67,6 +68,18 @@ is $coach_1->{password}, 'wwww', 'User fetched correctly from default database';
 my $coach_2 = $rs2->search({ name => 'bb2_a'})->single;
 is $coach_2->{password}, 'aaaa', 'User fetched correctly from second database';
 
+# Test class-based access
+$coach_1 = $rs1->set_target_class('Bloodbowl::Coach')->search({ name => 'user_a'})->single;
+isa_ok $coach_1,       'Bloodbowl::Coach';
+is $coach_1->password, 'wwww',       'User fetched correctly from default database by RS';
+is $coach_1->_name,    '_DEFAULT',   'Object fetched contains its Mint instance name';
+$coach_1->password('new');
 
+# Copy coach_1 to second database
+my %copy = %$coach_1;
+delete $copy{id};
+my $id   = Bloodbowl::Coach->insert( $mint2, \%copy );
+$coach_2 = Bloodbowl::Coach->find($mint2, { name => 'user_a' });
+is $coach_2->password, 'new', 'Copied object correctly from default database to another';
 
 done_testing();

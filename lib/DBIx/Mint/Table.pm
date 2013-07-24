@@ -201,7 +201,7 @@ sub find {
     croak "find must be called as a class method" if ref $class;
     
     # Input:
-    # Case 1) a data hash ref, a Mint object
+    # Case 1) a Mint object, a data hash ref
     # Case 2) a data hash ref
     # Case 3) a list of scalars (primary key values) 
     my $data;
@@ -209,8 +209,8 @@ sub find {
     my $schema;
     if (ref $_[0] && @_ == 2) {
         # Case 1
-        $data   = shift;
         $mint   = shift;
+        $data   = shift;
         $schema = $mint->schema->for_class($class);
     }
     else {
