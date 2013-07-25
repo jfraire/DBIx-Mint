@@ -253,7 +253,7 @@ This is the accessor/mutator for the L<SQL::Abstract::More> subjacent object.
 
 =head2 schema
 
-This is the accessor/mutator for the L<DBIx::Mint::Schema> instance:
+This is the accessor/mutator for the L<DBIx::Mint::Schema> instance.
 
 =head2 do_transaction
 
