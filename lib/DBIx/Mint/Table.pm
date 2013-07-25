@@ -51,6 +51,7 @@ sub insert {
      }
      else {
          $class = ref $proto;
+         @objects = ($proto);
          if ($_[0] && ref $_[0] eq 'DBIx::Mint') {
              # Case 4
              $mint = shift;
@@ -59,7 +60,6 @@ sub insert {
              # Case 5
              $mint = DBIx::Mint->instance('_DEFAULT');
          }
-         @objects = ($proto);
      }
 
     my $schema = $mint->schema->for_class( $class )
@@ -153,7 +153,7 @@ sub update {
 
 sub delete {
     # Input:
-    # Case 1) a class name, a data hash ref, a Mint object
+    # Case 1) a class name, a Mint object, a data hash ref
     # Case 2) a class name, a data hash ref
     # Case 3) a class name, a list of scalars (primary key values)
     # Case 4) a blessed object
@@ -164,9 +164,9 @@ sub delete {
     my $mint;
     if (!ref $proto) {
         $class = $proto;
-        if (@_ == 2 && ref $_[0]) {
+        if (ref $_[0] eq 'DBIx::Mint') {
             # Case 1
-            ($data, $mint) = @_;
+            ($mint, $data) = @_;
         }
         elsif (ref $_[0]) {
             # Case 2
