@@ -70,7 +70,7 @@ sub do_transaction {
         return undef;
     }
     $self->dbh->{AutoCommit} = 1 if $auto;
-    return @output ? @output : 1;    
+    return @output ? @output : 1;
 }
 
 1;

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use lib 't';
-use Test::More tests => 16;
+use Test::More tests => 17;
 use strict;
 use warnings;
 
@@ -54,6 +54,14 @@ $schema2->add_class(
     table    => 'skills',
     pk       => 'name',
 );
+
+{
+    eval {
+        my $mint3 = DBIx::Mint->new(name => 'BB2');
+    };
+    like $@, qr{DBIx::Mint object BB2 exists already},
+        'You cannot create two Mint objects with the same name';
+}
 
 # Test ResultSet objects
 my $rs1 = DBIx::Mint::ResultSet->new( table => 'coaches' );
