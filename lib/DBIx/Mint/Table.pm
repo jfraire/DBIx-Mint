@@ -177,6 +177,7 @@ sub delete {
             # Case 3
             my %data = @_;
             $data = \%data;
+            $mint = DBIx::Mint->instance('_DEFAULT');
         }
     }
     else {

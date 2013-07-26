@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 28;
+use Test::More tests => 31;
 use strict;
 use warnings;
 
@@ -128,6 +128,20 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     $test    = Bloodbowl::Coach->find(3);
     is $test->password, 222,  'As an instance method, not all records were modified';
 }
+{
+    eval {
+        Bloodbowl::Coach->update({password => '222'}, { please => 'croak' }, {});
+    };
+    like $@, qr{DBIx::Mint::Table update: Expected the first argument to be a DBIx::Mint object},
+        'Three args form of update should receive a Mint as first arg';
+}
+{
+    eval {
+        Bloodbowl::Coach->update({ please => 'croak' }, 'Yay');
+    };
+    like $@, qr{DBIx::Mint::Table update: called with incorrect arguments},
+        'update checks that its set and where args are references';
+}
 
 # Tests for delete
 {
@@ -140,6 +154,11 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     is_deeply $user, {}, 'Delete at the object level undefs the deleted object';
     my $test = Bloodbowl::Coach->find(4);
     ok !defined $test,   'Deleted object could not be found';
+}
+{
+    Bloodbowl::Coach->delete( name => { LIKE => 'user%' } );
+    my @all = Bloodbowl::Coach->result_set->all;
+    is scalar @all, 1,    'Deletion using a simple hash as input works fine';
 }
 
 done_testing();
