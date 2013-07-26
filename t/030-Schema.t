@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use Test::More tests => 26;
+use Test::More tests => 27;
 use strict;
 use warnings;
 
@@ -46,7 +46,7 @@ $schema->add_class(
     class      => 'Bloodbowl::Team',
     table      => 'teams',
     pk         => 'id',
-    is_auto_pk => 1,
+    auto_pk    => 1,
 );
 
 $schema->add_class(
@@ -54,6 +54,19 @@ $schema->add_class(
     table      => 'blah',
     pk         => [qw(field1 field2)],
 );
+
+{
+    eval {
+        $schema->add_class(
+            class      => 'Bloodbowl::Bleh',
+            table      => 'bleh',
+            pk         => [qw(field1 field2)],
+            auto_pk    => 1,
+        );
+    };
+    like $@, qr{Only a single primary key is supported},
+        'Tables with multiple primary keys cannot be marked auto';
+}
 
 {
     my $schema2 = DBIx::Mint::Schema->instance;

@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 31;
+use Test::More tests => 33;
 use strict;
 use warnings;
 
@@ -16,21 +16,6 @@ BEGIN {
 
 Test::DB->connect_db;
 isa_ok( DBIx::Mint->instance, 'DBIx::Mint');
-
-my $schema = DBIx::Mint::Schema->instance;
-$schema->add_class(
-    class    => 'Bloodbowl::Coach',
-    table    => 'coaches',
-    pk       => 'id',
-    auto_pk  => 1
-);
-$schema->add_class(
-    class    => 'Bloodbowl::Skill',
-    table    => 'skills',
-    pk       => 'name',
-);
-
-isa_ok( $schema, 'DBIx::Mint::Schema');
 
 {
     package Bloodbowl::Coach;
@@ -51,11 +36,40 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     has category     => ( is => 'rw' );
 }
 
+{
+    # These should croak
+    eval {
+        my $rs = Bloodbowl::Coach->result_set;
+    };
+    like $@, qr{result_set: The schema for [\w:]+ is undefined},
+        'result_set croaks when the schema is not defined';
+}
+
+my $schema = DBIx::Mint::Schema->instance;
+$schema->add_class(
+    class    => 'Bloodbowl::Coach',
+    table    => 'coaches',
+    pk       => 'id',
+    auto_pk  => 1
+);
+$schema->add_class(
+    class    => 'Bloodbowl::Skill',
+    table    => 'skills',
+    pk       => 'name',
+);
+
+isa_ok( $schema, 'DBIx::Mint::Schema');
+
 # Tests for Find
 {
     my $user = Bloodbowl::Coach->find({ name => 'user_a' });
     isa_ok($user, 'Bloodbowl::Coach');
     is($user->{id},    2,                   'Record fetched correctly by find, with where clause');
+    eval {
+        $user->find(4);
+    };
+    like $@, qr{find must be called as a class method},
+        'Find must be called as a class method';
 }
 {
     my $user = Bloodbowl::Coach->find(3);

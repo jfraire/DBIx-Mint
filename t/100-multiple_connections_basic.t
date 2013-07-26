@@ -79,7 +79,7 @@ $coach_1->password('new');
 my %copy = %$coach_1;
 delete $copy{id};
 my $id   = Bloodbowl::Coach->insert( $mint2, \%copy );
-$coach_2 = Bloodbowl::Coach->find($mint2, { name => 'user_a' });
+$coach_2 = Bloodbowl::Coach->find_or_create($mint2, { name => 'user_a' });
 is $coach_2->password, 'new', 'Copied object correctly from default database to another';
 
 done_testing();
