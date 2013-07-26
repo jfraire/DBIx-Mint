@@ -118,8 +118,8 @@ sub _build_rs {
         $to_table          = $class_obj->table;
         my %join_conditions;
         while (my ($from, $to) = each %$from_to_fields) { 
-            $from = "$from_table.$from"   unless $from =~ /\./;
-            $to   = "$to_table.$to"       unless $to   =~ /\./;
+            $from = "$from_table.$from";
+            $to   = "$to_table.$to";
             $join_conditions{$from} = $to;
         }
         $rs = $rs->inner_join( $to_table, \%join_conditions );
