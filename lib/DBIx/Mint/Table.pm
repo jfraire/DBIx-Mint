@@ -259,8 +259,15 @@ sub find {
 
 sub find_or_create {
     my $class = shift;
-    my $obj = $class->find(@_);
-    $obj = $class->create(@_) if ! defined $obj;
+    my $mint;
+    if (ref $_[0] eq 'DBIx::Mint') {
+        $mint = shift;
+    }
+    else {
+        $mint = DBIx::Mint->instance;
+    }
+    my $obj = $class->find($mint, @_);
+    $obj = $class->create($mint, @_) if ! defined $obj;
     return $obj;
 }
 
@@ -332,11 +339,13 @@ DBIx::Mint::Table - Role that maps a class to a table
 
 =head1 DESCRIPTION
 
-This role allows your class to interact with a database table. It allows for record modification (insert, update and delete records) as well as data fetching via DBIx::Mint::ResultSet objects.
+This role allows your class to interact with a database table. It allows for record modification (insert, update and delete records) as well as data fetching (find and find_or_create) and access to DBIx::Mint::ResultSet objects.
 
 Database modification methods can be called as instance or class methods. In the first case, they act only on the calling object. When called as class methods they allow for the modification of several records.
 
-Triggers can be added using the methods before, after, and around from L<Class::Method::Modifiers>. 
+Triggers can be added using the methods before, after, and around from L<Class::Method::Modifiers>.
+
+The database modifying parts of the routines are run under DBIx::Connector's fixup mode, as they are so small that no side-effects are expected. If you use transactions, the connection will be checked only at the outermost block method call. See L<DBIx::Connector> for more information.
 
 =head1 METHODS
 
@@ -421,7 +430,14 @@ To use a named DBIx::Mint instance:
 
 =head2 find_or_create
 
-This method will call 'create' if it cannot find a given record in the database.
+This method will call 'create' if the requested record is not found in the database.
+
+ my $obj = Bloodbowl::Coach->find_or_create(
+    name => 'Bob', email => 'bob@coaches.net'
+ );
+ my $obj = Bloodbowl::Coach->find_or_create(
+    $mint, { name => 'Bob', email => 'bob@coaches.net' }
+ );
 
 =head1 SEE ALSO
 
