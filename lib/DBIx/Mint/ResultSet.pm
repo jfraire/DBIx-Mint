@@ -252,13 +252,35 @@ DBIx::Mint::ResultSet - DBIx::Mint class to build database queries
  
 =head1 DESCRIPTION
 
-Objects of this class allow you to fetch information from the database. ResultSet objects do not know about the database schema, which means that you can use them without one and that you must use table names directly. 
+Objects of this class allow you to fetch information from the database. ResultSet objects do not know about the database schema, which means that you can use them without one and that you must use table names directly (but see L<DBIx::Mint::Table> for getting objects from a specific class).
 
 Query creation and join methods return a clone of the original ResultSet object. This makes them chaineable.
 
-Records can be returned as hash references or they can be inflated to the target class you set. You can get a single result, a list of all results or an iterator.
+Records can be returned as hash references or they can be inflated to the target class you set. You can get a single result, a list of all results, or an iterator.
 
 =head1 METHODS
+
+=head2 CONSTRUCTOR
+
+=over
+
+=item new
+
+It expects two arguments:
+
+=over
+
+=item table
+
+Used as the table to start building queries. You will join to this table or fetch data from this table. Required.
+
+=item instance
+
+Name of the L<DBIx::Mint> instance to use.
+
+=back
+
+=back
 
 =head2 QUERY CREATION METHODS
 
@@ -274,15 +296,17 @@ Builds the 'where' part of the query. It takes a data structure defined per the 
 
 =item order_by, limit, offset, group_by, having
 
-These methods simply feed the L<SQL::Abstract::More> select method with their respective clause.
+These methods feed the L<SQL::Abstract::More> select method with their respective clause.
 
 =item page, set_rows_per_page
 
-These methods simply specify limits and offsets suitable for pagination. You set the number of records that you want per page, and the page that you need to fetch from the database.
+These methods help in pagination of query results. They let you set the number of records per page (C<set_rows_per_page>) and to fetch a given C<page>. The default for C<set_rows_per_page> is 10 records.
+
+They work by setting LIMIT and OFFSET in the SQL query.
 
 =back
 
-=head2 JOINS
+=head2 TABLE JOINS
 
 L<DBIx::Mint::ResultSet> offers inner and left joins between tables. The syntax is quite simple:
 
@@ -296,17 +320,15 @@ The above call would produce a join between the tables 'coaches' and 'teams' usi
 
 You can alias the table names. 'me' always refers to the starting table (coaches in the example above).
 
-Note that the first example does not include table aliases. In this case, the keys of the hash reference are fields of the starting table (coaches) and its values refer to the table that will be joined. This is also valid for longer joins.
+Note that the first example does not include table aliases. In this case, the keys of the hash reference are fields of the starting table (coaches) and its values refer to the table that will be joined. If you don't use aliases, joins always refer to the initial table.
 
 =head2 FETCHING DATA
-
-To actually execute the query and fetch data you have a few methods:
 
 =over
 
 =item select_sql
 
-This method will simply return a SQL select statement and a list of values to bind:
+This method will return a SQL select statement and a list of values to bind, most helpful when debugging:
 
  my ($sql, @bind) = $rs->select_sql;
  
@@ -322,7 +344,7 @@ This method will return a single record from your query. It sets LIMIT to 1 and 
 
 =item all
 
-Returns all the records that result from your query. The records will be inflated to the target class if it was set earlier.
+Returns a list with all the records that result from your query. The records will be inflated to the target class if it was set earlier.
 
 =item as_iterator
 
@@ -332,6 +354,16 @@ This will add an iterator to the ResultSet object, over which you must call 'nex
  while (my $record = $rs->next ) {
      say $record->name;
  }
+
+This is the most efficient way to retrieve records.
+
+=item count
+
+This method will return the number of records matching your query. Internally, it builds a new query with the same search criteria as your original one, and asks for the count of matching records. Use it before adding pagination or other result-limiting constaints:
+
+ $rs = $rs->select( 'name', 'slogan', 'logo' )->search({ group => 'A'});
+ my $count = $rs->count;
+ my @records = $rs->set_rows_per_page(10)->page(5)->all;
 
 =back
 
