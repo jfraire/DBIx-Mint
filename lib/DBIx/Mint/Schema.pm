@@ -134,6 +134,17 @@ sub _build_method {
     my ($schema, $rs, $class, $method, $result_as) = @_; 
     
     my @pk = @{ $schema->for_class($class)->pk };
+
+    $result_as //= 'resultset';
+    my %valid_results = (
+        resultset   => 1,
+        single      => 1,
+        all         => 1,
+        as_iterator => 1,
+        as_sql      => 1
+    );
+    croak "result_as option not recognized for $class\::$method: '$result_as'"
+        unless exists $valid_results{ $result_as };
     
     {
         no strict 'refs';
@@ -142,10 +153,7 @@ sub _build_method {
             my %conditions;
             $conditions{"me.$_"} = $self->$_ foreach @pk;
             my $rs_copy = $rs->search(\%conditions);
-            if (!defined $result_as || $result_as eq 'resultset') {
-                return $rs_copy;
-            }
-            elsif ( $result_as eq 'single' ) {
+            if ( $result_as eq 'single' ) {
                 return $rs_copy->single;      
             }
             elsif ($result_as eq 'all') {
@@ -158,7 +166,7 @@ sub _build_method {
                 return $rs_copy->select_sql;  
             }
             else {
-                croak "result_as option not recognized for $class\::$method: '$result_as'";
+                return $rs_copy;
             }
         };
     }

@@ -110,13 +110,11 @@ isa_ok($team_rs, 'DBIx::Mint::ResultSet');
         to_class          => 'Bloodbowl::Blah',
         conditions        => { coach_f1 => 'blah_field1', coach_f2 => 'blah_field2'},
         method            => 'get_blah',
-        result_as         => 'resultset',
+        result_as         => 'as_sql',
         inverse_method    => 'get_coach',
         inverse_result_as => 'resultset',
     );
-    my $rs = $coach->get_blah;
-    isa_ok( $rs, 'DBIx::Mint::ResultSet');
-    my  ($sql, @bind) = $rs->select_sql;
+    my  ($sql, @bind) = $coach->get_blah;
     like $sql, qr{INNER JOIN blah AS blah},         'ResultSet for multi-column primary key test 1';
     like $sql, qr{me\.coach_f1 = blah\.blah_field1},'ResultSet for multi-column primary key test 2';
     like $sql, qr{me\.coach_f2 = blah\.blah_field2},'ResultSet for multi-column primary key test 3';
@@ -131,6 +129,19 @@ isa_ok($team_rs, 'DBIx::Mint::ResultSet');
     like($sql, qr{me\.blah_field2 = coaches\.coach_f2},'Inverse ResultSet for multi-column primary key test 3'),
     like($sql, qr{me\.field1 = \? AND me\.field2 = \?},
         'Inverse ResultSet for a multi-column primary key produces correct SQL');    
+}
+{
+    # This should croak
+    eval {
+        $schema->add_relationship(
+            from_class        => 'Bloodbowl::Coach',
+            to_class          => 'Bloodbowl::Blah',
+            conditions        => { coach_f1 => 'blah_field1', coach_f2 => 'blah_field2'},
+            method            => 'get_bleh',
+            result_as         => 'please_croak',
+        );
+    };
+    like $@, qr{result_as option not recognized},      'Invalid argument to result_as is discovered';
 }
 
 done_testing();
