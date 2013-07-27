@@ -19,6 +19,7 @@ sub BUILD {
     my $self = shift;
     croak "Only a single primary key is supported if you use auto-incrementing values"
         if $self->has_auto_pk && @{ $self->pk } > 1;
+    $self->not_in_db('_name');
 }
 
 sub not_in_db {

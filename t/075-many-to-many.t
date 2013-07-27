@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 12;
+use Test::More tests => 13;
 use strict;
 use warnings;
 
@@ -89,6 +89,21 @@ ok( DBIx::Mint->instance->has_connector,    'Mint has a database connection');
     is @players, 1,                           'Retrieved all records following the relationship backwards';
     isa_ok $players[0], 'Bloodbowl::Player';
     is $players[0]->name, 'player1',          'Retrieved record is correct';
+}
+{
+    # This should croak
+    eval {
+        $schema->many_to_many(
+            conditions     => [ 'Bloodbowl::Player',       { id => 'player'}, 
+                                'Bloodbowl::PlayerSkills', { skill => 'name'}, 
+                                'Bloodbowl::Skill' ],
+            method         => 'get_skills',
+            inverse_method => 'get_players',
+            insert_into    => 'please_croak',
+        );
+    };
+    like $@, qr{insert_into is not supported for many_to_many relationships},
+        'insert_into is not supported for many_to_many relationships';
 }
 
 done_testing();

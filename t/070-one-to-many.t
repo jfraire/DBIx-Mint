@@ -6,7 +6,7 @@ use Test::More tests => 13;
 use strict;
 use warnings;
 
-### Tests for many_to_many
+### Tests for one_to_many
 
 BEGIN {
     use_ok 'DBIx::Mint';

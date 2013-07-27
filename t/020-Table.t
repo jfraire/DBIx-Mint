@@ -2,7 +2,7 @@
 
 use lib 't';
 use Test::DB;
-use Test::More tests => 28;
+use Test::More tests => 33;
 use strict;
 use warnings;
 
@@ -16,21 +16,6 @@ BEGIN {
 
 Test::DB->connect_db;
 isa_ok( DBIx::Mint->instance, 'DBIx::Mint');
-
-my $schema = DBIx::Mint::Schema->instance;
-$schema->add_class(
-    class    => 'Bloodbowl::Coach',
-    table    => 'coaches',
-    pk       => 'id',
-    auto_pk  => 1
-);
-$schema->add_class(
-    class    => 'Bloodbowl::Skill',
-    table    => 'skills',
-    pk       => 'name',
-);
-
-isa_ok( $schema, 'DBIx::Mint::Schema');
 
 {
     package Bloodbowl::Coach;
@@ -51,11 +36,40 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     has category     => ( is => 'rw' );
 }
 
+{
+    # These should croak
+    eval {
+        my $rs = Bloodbowl::Coach->result_set;
+    };
+    like $@, qr{result_set: The schema for [\w:]+ is undefined},
+        'result_set croaks when the schema is not defined';
+}
+
+my $schema = DBIx::Mint::Schema->instance;
+$schema->add_class(
+    class    => 'Bloodbowl::Coach',
+    table    => 'coaches',
+    pk       => 'id',
+    auto_pk  => 1
+);
+$schema->add_class(
+    class    => 'Bloodbowl::Skill',
+    table    => 'skills',
+    pk       => 'name',
+);
+
+isa_ok( $schema, 'DBIx::Mint::Schema');
+
 # Tests for Find
 {
     my $user = Bloodbowl::Coach->find({ name => 'user_a' });
     isa_ok($user, 'Bloodbowl::Coach');
     is($user->{id},    2,                   'Record fetched correctly by find, with where clause');
+    eval {
+        $user->find(4);
+    };
+    like $@, qr{find must be called as a class method},
+        'Find must be called as a class method';
 }
 {
     my $user = Bloodbowl::Coach->find(3);
@@ -115,7 +129,7 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
 
 # Tests for update
 {
-    Bloodbowl::Coach->update({password => '222'});
+    Bloodbowl::Coach->update({password => '222'}, {});
     my $user = Bloodbowl::Coach->find(2);
     is $user->password, '222', 'Update works fine as a class method';
 }
@@ -127,6 +141,20 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     is $test->password, 678,  'Update works fine as an instance method';
     $test    = Bloodbowl::Coach->find(3);
     is $test->password, 222,  'As an instance method, not all records were modified';
+}
+{
+    eval {
+        Bloodbowl::Coach->update({password => '222'}, { please => 'croak' }, {});
+    };
+    like $@, qr{DBIx::Mint::Table update: Expected the first argument to be a DBIx::Mint object},
+        'Three args form of update should receive a Mint as first arg';
+}
+{
+    eval {
+        Bloodbowl::Coach->update({ please => 'croak' }, 'Yay');
+    };
+    like $@, qr{DBIx::Mint::Table update: called with incorrect arguments},
+        'update checks that its set and where args are references';
 }
 
 # Tests for delete
@@ -140,6 +168,11 @@ isa_ok( $schema, 'DBIx::Mint::Schema');
     is_deeply $user, {}, 'Delete at the object level undefs the deleted object';
     my $test = Bloodbowl::Coach->find(4);
     ok !defined $test,   'Deleted object could not be found';
+}
+{
+    Bloodbowl::Coach->delete( name => { LIKE => 'user%' } );
+    my @all = Bloodbowl::Coach->result_set->all;
+    is scalar @all, 1,    'Deletion using a simple hash as input works fine';
 }
 
 done_testing();

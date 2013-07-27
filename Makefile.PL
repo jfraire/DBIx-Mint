@@ -7,17 +7,17 @@ WriteMakefile(
     NAME              => 'DBIx::Mint',
     VERSION_FROM      => 'lib/DBIx/Mint.pm', # finds $VERSION
     PREREQ_PM         => {
-        'DBI'                 =>   0,
+        'DBI'                 => 0,
         'Moo'                 => 1.0,
-        'MooX::Singleton'     =>   0,
-        'SQL::Abstract::More' =>   0,
-        'List::MoreUtils'     =>   0,
-        'DBIx::Connector'     =>   0,
-        'Clone'               =>   0,
+        'MooX::Singleton'     => 0,
+        'SQL::Abstract::More' => 0,
+        'List::MoreUtils'     => 0,
+        'DBIx::Connector'     => 0.53,
+        'Clone'               => 0,
     },
     BUILD_REQUIRES   => {
-        'DBD::SQLite'         =>   0,
-        'Test::Warn'          =>   0,
+        'DBD::SQLite'         => 1.39,
+        'Test::Warn'          => 0,
     },
     META_MERGE     => {
         resources  => {
