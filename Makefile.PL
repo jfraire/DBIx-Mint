@@ -9,7 +9,6 @@ WriteMakefile(
     PREREQ_PM         => {
         'DBI'                 => 0,
         'Moo'                 => 1.0,
-        'MooX::Singleton'     => 0,
         'SQL::Abstract::More' => 0,
         'List::MoreUtils'     => 0,
         'DBIx::Connector'     => 0.53,
