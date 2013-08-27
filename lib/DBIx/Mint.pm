@@ -6,7 +6,7 @@ use SQL::Abstract::More;
 use Carp;
 use Moo;
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 my %object_pool;
 
@@ -83,7 +83,7 @@ DBIx::Mint - A mostly class-based ORM for Perl
 
 =head1 VERSION
 
-This documentation refers to DBIx::Mint 0.04
+This documentation refers to DBIx::Mint 0.05
 
 =head1 SYNOPSIS
 
