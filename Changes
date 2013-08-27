@@ -1,5 +1,12 @@
 Revision history for Perl extension DBIx::Mint
 
+0.05    - Fixed POD for DBIx::Mint::Schema. fields_not_in_db
+	  was documented as not_in_db. Thanks to Alexey Vavilkin.
+
+0.04
+	- Added support for simultaneus database connections
+	  and different schemas.
+
 0.03 2013-06-04
 	- Removed use of given/when construct as it is now
 	  marked as 'experimental' in Perl 5.17 and upwards
