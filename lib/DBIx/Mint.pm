@@ -6,7 +6,7 @@ use SQL::Abstract::More;
 use Carp;
 use Moo;
 
-our $VERSION = 0.05;
+our $VERSION = 0.06;
 
 my %object_pool;
 
@@ -39,7 +39,7 @@ sub dbh {
 };
 
 sub connect {
-    my $self;
+    my ($self, $dsn, $username, $passwd, $args) = @_;
     if (ref $_[0]) {
         $self = shift;
     }
@@ -47,9 +47,10 @@ sub connect {
         my $class = shift;
         $self = $class->instance();
     }
-    $self->connector( DBIx::Connector->new(@_) );
+    $args->{HandleError} //= sub { croak $_[0] };
+    $self->connector( DBIx::Connector->new(
+        $dsn, $username, $passwd, $args ) );
     $self->connector->mode('ping');
-    $self->dbh->{HandleError} = sub { croak $_[0] };
 
     return $self;
 }
@@ -224,7 +225,7 @@ A L<DBIx::Connector> object. By default, DBIx::Mint uses all its default options
 This is a method that receives your database connection parameters per L<DBI>'s spec and instantiates the L<DBIx::Connector> object:
 
  # Create the default Mint object and its connection:
- DBIx::Mint->connect('dbi:SQLite:dbname=t/bloodbowl.db', '', '',
+ DBIx::Mint->connect('dbi:SQLite:dbname=t/bloodbowl.db', $username, $password,
         { AutoCommit => 1, RaiseError => 1 });
 
  # Create a named connection:
@@ -305,7 +306,7 @@ Julio Fraire, <julio.fraire@gmail.com>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2013, Julio Fraire. All rights reserved.
+Copyright (c) 2014, Julio Fraire. All rights reserved.
 
 =head1 LICENSE
 
