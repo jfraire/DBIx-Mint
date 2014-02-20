@@ -440,6 +440,13 @@ This method will call 'create' if the requested record is not found in the datab
     $mint, { name => 'Bob', email => 'bob@coaches.net' }
  );
 
+=head2 result_set
+
+Get a L<DBIx::Mint::ResultSet> object for the table associated with this class. Optionally, use a named Mint object:
+
+ my $rs = Bloodbowl::Team->result_set;            # With default db
+ my $rs = Bloodbowl::Team->result_set('other');   # With other db
+
 =head1 SEE ALSO
 
 This module is part of L<DBIx::Mint>.
