@@ -146,7 +146,7 @@ And in your your scripts:
     { status   => 'suspended' }, 
     { password => 'blocked' });
  
-To define a schema and to learn about data modification methods, look into L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>. Declaring the schema allows you to modify the data.
+Declaring the schema allows you to modify the data. To define a schema and to learn about data modification methods, look into L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>. 
 
 If you only need to query the database, no schema is needed. L<DBIx::Mint::ResultSet> objects build database queries and fetch the resulting records:
   
@@ -162,7 +162,7 @@ If you only need to query the database, no schema is needed. L<DBIx::Mint::Resul
 
 DBIx::Mint is a mostly class-based, object-relational mapping module for Perl. It tries to be simple and flexible, and it is meant to integrate with your own custom classes.
 
-As of version 0.04, it allows for multiple database connections and it features L<DBIx::Connector> objects under the hood to mantain them, which should make it easy to use in persistent environments.
+Since version 0.04, it allows for multiple database connections and it features L<DBIx::Connector> objects under the hood. This should make DBIx::Mint easy to use in persistent environments.
 
 There are many ORMs for Perl. Most notably, you should look at L<DBIx::Class> and L<DBIx::DataModel> which are two robust, proven offerings as of today. L<DBIx::Lite> is another light-weight alternative.
 
@@ -172,29 +172,29 @@ The documentation is split into four parts:
 
 =over
 
-=item * This general view, which documents the umbrella class DBIx::Mint. A DBIx::Mint object encapsulates a given database conection and its schema. This class maintains a pool of named Mint objects.
+=item * This general view, which documents the umbrella class DBIx::Mint. A DBIx::Mint object encapsulates a given database conection and its schema.
 
-=item * L<DBIx::Mint::Schema> documents relationships and the mapping between classes and database tables. It shows how to specify table names, primary keys and how to create associations between classes.
+=item * L<DBIx::Mint::Schema> documents the mapping between classes and database tables. It shows how to specify table names, primary keys and how to create associations between classes.
 
-=item * L<DBIx::Mint::Table> is a role that implements methods that modify or fetch data from a single table. It is meant to be applied to your custom classes (via L<Moo>).
+=item * L<DBIx::Mint::Table> is a role that allows you to modify or fetch data from a single table. It is meant to be applied to your custom classes using L<Moo> or L<Role::Tiny::With>.
 
-=item * L<DBIx::Mint::ResultSet> builds database queries using chainable methods. It does not know about the schema, so it can be used without one. Internally, ResultSet objects are used to implement fetch methods and class associations, for example.
+=item * L<DBIx::Mint::ResultSet> performs database queries using chainable methods. It does not know about the schema, so it can be used without one or without any external classes .
 
 =back
 
 =head1 GENERALITIES
 
-The basic idea is that, frequently, a class can be mapped to a database table. Records become objects that can be created, fetched, updated and deleted. Relationships between tables/classes can also be represented as class methods that fetch or insert objects from other classes, for example, or that simply return data. So, with the help of a schema, a given class could know what table in a database it represents, as well as its primary keys and the relationships it has with other classes. Using such a schema and a table-accessing role, our class gains database persistence. This side of the ORM is clearly class-based and it is implemented in L<DBIx::Mint::Table>.
+The basic idea is that, frequently, a class can be mapped to a database table. Records become objects that can be created, fetched, updated and deleted. With the help of a schema, classes know what database table they represent, as well as their primary keys and the relationships they have with other classes. Relationships between classes are represented as methods that act upon objects from other classes, for example, or that simply return data. Using such a schema and a table-accessing role, classes gain database persistence.
 
-Fetching data from joined tables is different, though. While you can have a class to represent records comming from a join, you cannot create, update or delete directly the objects from such a class. Using L<DBIx::Mint::ResultSet> objects, complex table joins and queries are encapsulated, along with different options to actually fetch data and possibly inflate it into full-blown objects. In this case, DBIx::Mint uses the result set approach, as DBIx::Lite does.
+Fetching data from joined tables is different, though. While you can have a class to represent records comming from a join, you cannot create, update or delete directly the objects from such a class. Using L<DBIx::Mint::ResultSet> objects, complex table joins and queries are encapsulated, along with different options to actually fetch data and possibly bless it into full-blown objects. In this case, DBIx::Mint uses the result set approach, as DBIx::Lite does.
 
-Finally, the database connection, the database schema and its SQL syntax details are encapsulated in DBIx::Mint objects. You can create more than one of such objects to access more than one database within your program. Mint objects are kept in a centralized pool so that they remain accessible without the need of passing them through explicitly. 
+Finally, DBIx::Mint objects contain the database connection, the database schema and its SQL syntax details. Because each object encapsulates a database connection, you may create several objects to interact with different databases within your program. Mint objects are kept in a centralized pool so that they remain accessible without the need of passing them through explicitly.
 
 =head1 SUBROUTINES/METHODS IMPLEMENTED BY L<DBIx::Mint>
 
 =head2 new
 
-Object constructor. It will save the newly created object into the connection pool, but it will croak if the object exists already. All its arguments are optional:
+First of three constructors. All of them will save the newly created object into the connection pool, but they will croak if the object exists already. All the arguments to C<new> are optional. If C<abstract> or C<connector> are not given, the objects will be created for you with their default arguments.
 
 =over
 
@@ -204,21 +204,21 @@ The name of the new Mint object. Naming your objects allows for having more than
 
 =item schema
 
-An already built L<DBIx::Mint::Schema> object. Useful to re-use the same schema over different database connections.
+A L<DBIx::Mint::Schema> object. You can create the DBIx::Mint::Schema yourself and feed it into different DBIx::Mint objects to use the same schema over different databases.
 
 =item abstract
 
-A L<SQL::Abstract::More> object. By default, DBIx::Mint uses all its default options.
+A L<SQL::Abstract::More> object.
 
 =item connector
 
-A L<DBIx::Connector> object. By default, DBIx::Mint uses all its default options.
+A L<DBIx::Connector> object.
 
 =back
 
 =head2 connect
 
-This is a method that receives your database connection parameters per L<DBI>'s spec and instantiates the L<DBIx::Connector> object:
+Connects the Mint object to the database. If called as a class method, C<connect> creates a Mint object with the default name first. It receives your database connection parameters per L<DBI>'s specifications:
 
  # Create the default Mint object and its connection:
  DBIx::Mint->connect('dbi:SQLite:dbname=t/bloodbowl.db', $username, $password,
@@ -231,12 +231,12 @@ This is a method that receives your database connection parameters per L<DBI>'s 
 
 =head2 instance
 
-Fetches an instance of L<DBIx::Mint> from the object pool:
+Class method. It fetches an instance of L<DBIx::Mint> from the object pool:
 
  my $mint  = DBIx::Mint->instance;           # Default connection
  my $mint2 = DBIx::Mint->instance('other');  # 'other' connection
 
-If the object does not exist, it will be created. This allows you to create mappings to different databases in the same program.
+If the object does not exist, it will be created and so this is the third constructor. This method allows you to create mappings to different databases in the same program. The optional argument is used as the DBIx::Mint object name.
 
 =head2 connector
 
@@ -244,7 +244,7 @@ This accessor/mutator will return the underlying L<DBIx::Connector> object.
 
 =head2 dbh
 
-This method will simply return the database handle from L<DBIx::Connector>, which is guaranteed to be alive.
+This method will return the underlying database handle, which is guaranteed to be alive.
  
 =head2 abstract
 
@@ -260,11 +260,11 @@ This instance method will take a code reference and execute it within a transact
 
  $mint->do_transaction( $code_ref ) || die "Transaction failed!";
 
-Note that it must be called as an intance method, not as a class method. The right database connection will be used.
+Note that it must be called as an intance method, not as a class method.
  
 =head1 USE OF L<DBIx::Connector>
 
-Under the hood, DBIx::Mint uses DBIx::Connector to hold the database handle and to make sure that the connection is well and alive when you need it. The database modification routines employ the 'fixup' mode for modifying the database at a very fine-grained level, so that no side-effects are visible. This allows us to use DBIx::Connector in the most efficient way. However, please pay attention when installing method modifiers around those methods provided by the L<DBIx::Mint::Table> role. In this case, unwanted have secondary effects are possible.
+Under the hood, DBIx::Mint uses DBIx::Connector to hold the database handle and to make sure that the connection is well and alive when you need it. The database modification routines employ the 'fixup' mode for modifying the database at a very fine-grained level, so that no side-effects are visible. This allows us to use DBIx::Connector in an efficient way. If you choose to install method modifiers around database interactions, be careful to avoid unwanted secondary effects.
 
 The query routines offered by L<DBIx::Mint::ResultSet> use the 'fixup' mode while retrieving the statement holder with the SELECT query already prepared, but not while extracting information in the execution phase. If you fear that the database connection may have died in the meantime, you can always use Mint's C<connector> method to get a hold of the DBIx::Connector object and manage the whole query process yourself. This should not be necessary, though.
 
@@ -275,6 +275,8 @@ This distribution depends on the following external, non-core modules:
 =over
 
 =item Moo
+
+=item MooX::Singleton
 
 =item SQL::Abstract::More
 
