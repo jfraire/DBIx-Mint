@@ -1,35 +1,35 @@
 package DBIx::Mint;
 
+use DBIx::Mint::Singleton;
 use DBIx::Connector;
 use DBIx::Mint::Schema;
 use SQL::Abstract::More;
 use Carp;
 use Moo;
 
-our $VERSION = 0.06;
+our $VERSION = 0.07;
 
-my %object_pool;
-
-has name      => ( is => 'ro', default   => sub { '_DEFAULT' } );
-has abstract  => ( is => 'rw', default   => sub { SQL::Abstract::More->new(); } );
-has schema    => ( is => 'rw', default   => sub { return DBIx::Mint::Schema->new } );
-has connector => ( is => 'rw', predicate => 1 );
+has name       => ( is => 'ro', default   => sub { '_DEFAULT' } );
+has abstract   => ( is => 'rw', default   => sub { SQL::Abstract::More->new(); } );
+has schema     => ( is => 'rw', default   => sub { return DBIx::Mint::Schema->new } );
+has connector  => ( is => 'rw', predicate => 1 );
 
 sub BUILD {
     my $self = shift;
-    my $name = $self->name;
-    croak "DBIx::Mint object $name exists already"
-        if exists $object_pool{ $name };
-    $object_pool{ $name } = $self;
+    my $singleton = DBIx::Mint::Singleton->instance;
+    croak "DBIx::Mint object " . $self->name . " exists already"
+        if $singleton->exists($self->name);
+    $singleton->add_instance($self);
 }
 
 sub instance {
     my ($class, $name) = @_;
     $name //= '_DEFAULT';
-    if (!exists $object_pool{$name}) {
+    my $singleton = DBIx::Mint::Singleton->instance;
+    if (!$singleton->exists($name)) {
         $class->new( name => $name );
     }
-    return $object_pool{$name};
+    return $singleton->get_instance($name);
 }
 
 sub dbh {
@@ -84,7 +84,7 @@ DBIx::Mint - A mostly class-based ORM for Perl
 
 =head1 VERSION
 
-This documentation refers to DBIx::Mint 0.05
+This documentation refers to DBIx::Mint 0.07
 
 =head1 SYNOPSIS
 
@@ -148,7 +148,7 @@ And in your your scripts:
  
 To define a schema and to learn about data modification methods, look into L<DBIx::Mint::Schema> and L<DBIx::Mint::Table>. Declaring the schema allows you to modify the data.
 
-If you only need to query the database, no schema is needed. ResultSet objects build database queries and fetch the resulting records:
+If you only need to query the database, no schema is needed. L<DBIx::Mint::ResultSet> objects build database queries and fetch the resulting records:
   
  my $rs = DBIx::Mint::ResultSet->new( table => 'coaches' );
  
@@ -157,8 +157,6 @@ If you only need to query the database, no schema is needed. ResultSet objects b
    ->inner_join( 'teams',   { 'me.id'    => 'coach' })
    ->inner_join( 'players', { 'teams.id' => 'team'  })
    ->all;
-
-See the docs for L<DBIx::Mint::ResultSet> for all the methods you can use to retrieve data. 
  
 =head1 DESCRIPTION
 
@@ -167,8 +165,6 @@ DBIx::Mint is a mostly class-based, object-relational mapping module for Perl. I
 As of version 0.04, it allows for multiple database connections and it features L<DBIx::Connector> objects under the hood to mantain them, which should make it easy to use in persistent environments.
 
 There are many ORMs for Perl. Most notably, you should look at L<DBIx::Class> and L<DBIx::DataModel> which are two robust, proven offerings as of today. L<DBIx::Lite> is another light-weight alternative.
-
-This module is in its infancy and it is very likely to change and (gasp) risk is high that it will go unmaintained.
 
 =head1 DOCUMENTATION
 
@@ -204,7 +200,7 @@ Object constructor. It will save the newly created object into the connection po
 
 =item name
 
-The name of the new Mint object. It will be used to fetch the object from the connections pool (see L<DBIx::Mint::instance>).
+The name of the new Mint object. Naming your objects allows for having more than one, and thus for having simultaneus connections to different databases. The object name will be used to fetch it from the connections pool (see the method L<DBIx::Mint::instance|instance>).
 
 =item schema
 
@@ -235,10 +231,12 @@ This is a method that receives your database connection parameters per L<DBI>'s 
 
 =head2 instance
 
-Returns an instance of L<DBIx::Mint>:
+Fetches an instance of L<DBIx::Mint> from the object pool:
 
  my $mint  = DBIx::Mint->instance;           # Default connection
  my $mint2 = DBIx::Mint->instance('other');  # 'other' connection
+
+If the object does not exist, it will be created. This allows you to create mappings to different databases in the same program.
 
 =head2 connector
 
@@ -306,7 +304,7 @@ Julio Fraire, <julio.fraire@gmail.com>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2014, Julio Fraire. All rights reserved.
+Copyright (c) 2015, Julio Fraire. All rights reserved.
 
 =head1 LICENSE
 
