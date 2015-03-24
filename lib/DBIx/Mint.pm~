@@ -84,7 +84,7 @@ DBIx::Mint - A mostly class-based ORM for Perl
 
 =head1 VERSION
 
-This documentation refers to DBIx::Mint 0.071
+This documentation refers to DBIx::Mint 0.07
 
 =head1 SYNOPSIS
 

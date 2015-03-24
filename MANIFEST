@@ -4,11 +4,13 @@ lib/DBIx/Mint/ResultSet.pm
 lib/DBIx/Mint/ResultSet/Iterator.pm
 lib/DBIx/Mint/Schema.pm
 lib/DBIx/Mint/Schema/Class.pm
+lib/DBIx/Mint/Singleton.pm
 lib/DBIx/Mint/Table.pm
+LICENSE
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
-README
+README.pod
 t/010-ResultSet.t
 t/015-ResultSet.t
 t/020-Table.t
@@ -21,5 +23,10 @@ t/060-Examples_in_POD.t
 t/065-Schema.t
 t/070-one-to-many.t
 t/075-many-to-many.t
+t/100-multiple_connections_basic.t
+t/110-multiple_connections_table.t
+t/120-lazy_connection.t
+t/Bloodbowl/Coach.pm
+t/bloodbowl2.db
 t/Test/DB.pm
-
+t/Test/DB2.pm
