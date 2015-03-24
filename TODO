@@ -1,8 +1,0 @@
-DBIx::Mint TODO:
-
-Next:
-- Add tests and documentation for DBIx::Mint::Schema::Class fields_not_in_db
-
-May be:
-- Add DBIx::Connector?
-- Add hook to execute SQL statements when the database connection is first fed into DBIx::Mint
